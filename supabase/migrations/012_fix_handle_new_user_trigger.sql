@@ -12,10 +12,9 @@ CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS trigger AS $$
 BEGIN
   IF EXISTS (SELECT 1 FROM profiles WHERE email = NEW.email) THEN
-    -- Profile pre-exists (hero approved by coach) — link auth account to it
+    -- Profile pre-exists (hero approved by coach) — link auth id to it
     UPDATE profiles
-    SET id     = NEW.id,
-        auth_id = NEW.id
+    SET id = NEW.id
     WHERE email = NEW.email;
   ELSE
     -- Brand new user — create a profile
@@ -30,8 +29,6 @@ BEGIN
   END IF;
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
-  -- Never block auth — log and continue
-  RAISE WARNING '[handle_new_user] error for %: %', NEW.email, SQLERRM;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
