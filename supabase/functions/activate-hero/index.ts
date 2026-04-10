@@ -83,53 +83,9 @@ Deno.serve(async (req) => {
 
   // ── 2. Ensure auth user exists; sync profile.id if newly created ──────────
   // Hero profiles are created by the coach with crypto.randomUUID() — no auth
-  // account exists yet. generateLink({ type: 'recovery' }) would fail without one.
+  // account exists yet. generateLink({ type: 'recovery' }) fails without one.
+  // Strategy: attempt generateLink first; if it fails, create the auth user and retry.
   let activeHeroId = heroId  // may change if we create a new auth user
-
-  const { data: existingAuthUser } = await supabaseAdmin.auth.admin.getUserByEmail(heroEmail)
-
-  if (!existingAuthUser?.user) {
-    console.log('[activate-hero] No auth user found for', heroEmail, '— creating one')
-
-    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-      email:          heroEmail,
-      email_confirm:  true,   // skip email confirmation — we send the activation link ourselves
-      user_metadata:  { full_name: heroName },
-    })
-
-    if (createErr || !created?.user) {
-      console.error('[activate-hero] createUser failed:', createErr?.message)
-      return new Response(JSON.stringify({ error: 'Failed to create auth user: ' + createErr?.message }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const newAuthId = created.user.id
-    console.log('[activate-hero] Auth user created:', newAuthId)
-
-    // Sync profile.id → newAuthId so auth.uid() matches profile.id (required for RLS)
-    const { error: syncErr } = await supabaseAdmin
-      .from('profiles')
-      .update({ id: newAuthId })
-      .eq('id', heroId)
-
-    if (syncErr) {
-      console.error('[activate-hero] Failed to sync profile.id:', syncErr.message)
-      // Non-fatal: the email will still work; RLS may have issues until fixed manually
-    } else {
-      console.log('[activate-hero] profile.id synced to auth UUID ✓')
-      // Also update hero_requests.linked_hero_id reference
-      await supabaseAdmin
-        .from('hero_requests')
-        .update({ linked_hero_id: newAuthId })
-        .eq('linked_hero_id', heroId)
-    }
-
-    activeHeroId = newAuthId
-  } else {
-    console.log('[activate-hero] Existing auth user found:', existingAuthUser.user.id)
-    activeHeroId = existingAuthUser.user.id
-  }
 
   // ── 3. Set is_active = true ────────────────────────────────────────────────
   const { error: activateErr } = await supabaseAdmin
@@ -156,17 +112,62 @@ Deno.serve(async (req) => {
   // ── 4. Generate password-setup link ───────────────────────────────────────
   let setupLink = `${appUrl}/auth/callback`
 
-  const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+  // First attempt — works if the hero already has a Supabase Auth account
+  let { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
     type:    'recovery',
     email:   heroEmail,
     options: { redirectTo: `${appUrl}/auth/callback` },
   })
 
   if (linkErr) {
-    console.error('[activate-hero] generateLink failed:', linkErr.message)
-    // setupLink falls back to /auth/callback without a token — hero can use forgot-password
+    console.log('[activate-hero] generateLink attempt 1 failed:', linkErr.message, '— creating auth user')
+
+    // No auth user yet — create one (email_confirm skips verification email)
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email:         heroEmail,
+      email_confirm: true,
+      user_metadata: { full_name: heroName },
+    })
+
+    if (createErr || !created?.user) {
+      console.error('[activate-hero] createUser failed:', createErr?.message)
+      // Fall back — link will just point to the callback page without a token
+    } else {
+      const newAuthId = created.user.id
+      console.log('[activate-hero] Auth user created:', newAuthId)
+
+      // Sync profile.id → newAuthId so auth.uid() matches profile.id (required for RLS)
+      const { error: syncErr } = await supabaseAdmin
+        .from('profiles')
+        .update({ id: newAuthId })
+        .eq('id', heroId)
+
+      if (syncErr) {
+        console.error('[activate-hero] Failed to sync profile.id:', syncErr.message)
+      } else {
+        console.log('[activate-hero] profile.id synced to auth UUID ✓')
+        await supabaseAdmin
+          .from('hero_requests')
+          .update({ linked_hero_id: newAuthId })
+          .eq('linked_hero_id', heroId)
+        activeHeroId = newAuthId
+      }
+
+      // Second attempt — should succeed now that the user exists
+      const retry = await supabaseAdmin.auth.admin.generateLink({
+        type:    'recovery',
+        email:   heroEmail,
+        options: { redirectTo: `${appUrl}/auth/callback` },
+      })
+      linkData = retry.data
+      linkErr  = retry.error
+    }
+  }
+
+  if (linkErr) {
+    console.error('[activate-hero] generateLink final attempt failed:', linkErr.message)
   } else {
-    setupLink = linkData.properties?.action_link ?? setupLink
+    setupLink = linkData?.properties?.action_link ?? setupLink
     console.log('[activate-hero] password-setup link generated ✓')
   }
 
