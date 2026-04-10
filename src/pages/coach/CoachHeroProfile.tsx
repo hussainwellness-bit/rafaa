@@ -406,18 +406,22 @@ function groupExercises(exercises: Exercise[]): Map<string, Exercise[]> {
   return new Map([...map.entries()].sort((a, b) => b[1].length - a[1].length))
 }
 
-function ExercisePicker({ bundleId, bundleExercises, refetchBE }: {
+function ExercisePicker({ bundleId, bundleExercises, refetchBE, coachId }: {
   bundleId: string
   bundleExercises: BundleExercise[]
   refetchBE: () => void
+  coachId: string
 }) {
   const qc = useQueryClient()
+  const { profile } = useAuthStore()
+  const { toast, showToast } = useToast()
   const [search, setSearch] = useState('')
   const [checked, setChecked] = useState<Set<string>>(new Set())
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
   const [showCustom, setShowCustom] = useState(false)
-  const [customForm, setCustomForm] = useState({ name: '', muscle_groups: '', kind: 'Compound' as ExerciseKind, video_url: '' })
+  const [customForm, setCustomForm] = useState({ name: '', muscle_groups: '', kind: 'Compound' as ExerciseKind, video_url: '', instructions: '' })
   const [customErr, setCustomErr] = useState('')
+  const [customSaving, setCustomSaving] = useState(false)
   const [adding, setAdding] = useState(false)
 
   const { data: exercises = [] } = useQuery({
@@ -428,12 +432,15 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE }: {
     },
   })
 
+  const standardExercises = exercises.filter(e => !e.is_custom)
+  const customExercises   = exercises.filter(e => e.is_custom)
+
   const filtered = search.trim()
-    ? exercises.filter(e =>
+    ? standardExercises.filter(e =>
         e.name.toLowerCase().includes(search.toLowerCase()) ||
         e.muscle_groups?.some(m => m.toLowerCase().includes(search.toLowerCase()))
       )
-    : exercises
+    : standardExercises
 
   const grouped = groupExercises(filtered)
 
@@ -461,18 +468,34 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE }: {
   }
 
   async function createCustom() {
-    if (!customForm.name.trim()) { setCustomErr('Name required'); return }
+    if (!customForm.name.trim()) { setCustomErr('Name is required'); return }
+    setCustomErr(''); setCustomSaving(true)
     const mg = customForm.muscle_groups.split(',').map(s => s.trim()).filter(Boolean)
     const { data, error } = await supabase.from('exercises').insert({
-      name: customForm.name.trim(), muscle_groups: mg.length ? mg : ['Other'],
-      kind: customForm.kind, video_url: customForm.video_url || null,
+      name:            customForm.name.trim(),
+      muscle_groups:   mg.length ? mg : ['Other'],
+      kind:            customForm.kind,
+      video_url:       customForm.video_url || null,
+      instructions:    customForm.instructions || null,
+      created_by:      coachId,
+      created_by_name: profile?.full_name ?? 'Coach',
+      is_custom:       true,
     }).select().single()
+    setCustomSaving(false)
     if (error) { setCustomErr(error.message); return }
+
+    // Add directly to the bundle
+    const newEx = data as Exercise
+    const maxOrder = bundleExercises.reduce((m, be) => Math.max(m, be.sort_order), -1)
+    await supabase.from('bundle_exercises').insert({
+      bundle_id: bundleId, exercise_id: newEx.id, sets: 3, reps: '8-12', sort_order: maxOrder + 1,
+    })
+
     qc.invalidateQueries({ queryKey: ['exercises'] })
     setShowCustom(false)
-    setCustomForm({ name: '', muscle_groups: '', kind: 'Compound', video_url: '' })
-    setCustomErr('')
-    if (data) setChecked(prev => new Set([...prev, (data as Exercise).id]))
+    setCustomForm({ name: '', muscle_groups: '', kind: 'Compound', video_url: '', instructions: '' })
+    refetchBE()
+    showToast('success', 'Exercise added ✓')
   }
 
   const newCount = [...checked].filter(id => !bundleExercises.some(be => be.exercise_id === id)).length
@@ -488,14 +511,15 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE }: {
       </div>
 
       {showCustom && (
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-[12px] p-4 mb-4 space-y-2">
+        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-[12px] p-4 mb-4 space-y-2">
+          <p className="text-[#888] text-[10px] font-bold uppercase tracking-widest mb-1">New Custom Exercise</p>
           <input placeholder="Exercise name *" value={customForm.name} onChange={e => setCustomForm(f => ({ ...f, name: e.target.value }))}
             className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-[8px] text-white text-sm placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00]" />
           <input placeholder="Muscle groups (e.g. Chest, Shoulders)" value={customForm.muscle_groups} onChange={e => setCustomForm(f => ({ ...f, muscle_groups: e.target.value }))}
             className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-[8px] text-white text-sm placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00]" />
           <div className="flex gap-2">
             {(['Compound', 'Isolation'] as ExerciseKind[]).map(k => (
-              <button key={k} onClick={() => setCustomForm(f => ({ ...f, kind: k }))}
+              <button key={k} type="button" onClick={() => setCustomForm(f => ({ ...f, kind: k }))}
                 className={`flex-1 py-1.5 rounded-[100px] text-xs font-semibold border transition-all ${customForm.kind === k ? 'bg-[#c8ff00] border-[#c8ff00] text-[#080808]' : 'border-[#333] text-[#555]'}`}>
                 {k}
               </button>
@@ -503,10 +527,18 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE }: {
           </div>
           <input placeholder="Video URL (optional)" value={customForm.video_url} onChange={e => setCustomForm(f => ({ ...f, video_url: e.target.value }))}
             className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-[8px] text-white text-sm placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00]" />
+          <textarea rows={2} placeholder="Instructions (optional)" value={customForm.instructions} onChange={e => setCustomForm(f => ({ ...f, instructions: e.target.value }))}
+            className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-[8px] text-white text-sm placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] resize-none" />
           {customErr && <p className="text-[#ff3d3d] text-xs">{customErr}</p>}
-          <div className="flex gap-2">
-            <button onClick={() => setShowCustom(false)} className="flex-1 py-2 text-xs text-[#555] border border-[#333] rounded-[8px] hover:text-white">Cancel</button>
-            <button onClick={createCustom} className="flex-1 py-2 text-xs text-[#080808] bg-[#c8ff00] rounded-[8px] font-semibold hover:bg-[#d4ff33]">Save & Select</button>
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={() => { setShowCustom(false); setCustomErr('') }}
+              className="flex-1 py-2.5 text-xs text-[#555] border border-[#333] rounded-[10px] hover:text-white transition-colors">
+              Cancel
+            </button>
+            <button type="button" onClick={createCustom} disabled={customSaving}
+              className="flex-1 py-2.5 text-xs text-[#080808] bg-[#c8ff00] rounded-[10px] font-bold hover:bg-[#d4ff33] transition-colors disabled:opacity-50 uppercase tracking-wider">
+              {customSaving ? 'Adding…' : 'ADD EXERCISE'}
+            </button>
           </div>
         </div>
       )}
@@ -542,7 +574,43 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE }: {
             )}
           </div>
         ))}
-        {filtered.length === 0 && <p className="text-[#444] text-sm text-center py-6">No matches for "{search}"</p>}
+
+        {/* Custom exercises section */}
+        <div className="border-t border-[#1a1a1a]">
+          <button onClick={() => toggleGroup('__custom__')}
+            className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#1a1a1a] transition-all text-left">
+            <span className="text-[#c8ff00]/60 text-xs font-bold uppercase tracking-wider">
+              // CUSTOM EXERCISES <span className="text-[#444]">({customExercises.length})</span>
+            </span>
+            <span className="text-[#444] text-xs">{openGroups.has('__custom__') ? '▼' : '▶'}</span>
+          </button>
+          {openGroups.has('__custom__') && (
+            <div className="pb-1">
+              {customExercises.length === 0 && (
+                <p className="text-[#444] text-xs text-center py-4 px-4">No custom exercises yet — add one above</p>
+              )}
+              {customExercises.map(ex => {
+                const already = bundleExercises.some(be => be.exercise_id === ex.id)
+                return (
+                  <label key={ex.id}
+                    className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-all ${already ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#1a1a1a]'}`}>
+                    <input type="checkbox" checked={checked.has(ex.id) || already} disabled={already}
+                      onChange={() => !already && toggleCheck(ex.id)} className="w-4 h-4 accent-[#c8ff00] cursor-pointer" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm">{ex.name}</p>
+                      {ex.created_by_name && (
+                        <p className="text-[#444] text-[10px]">Added by {ex.created_by_name}</p>
+                      )}
+                    </div>
+                    {already && <span className="text-[#444] text-xs">✓</span>}
+                  </label>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {filtered.length === 0 && search.trim() && <p className="text-[#444] text-sm text-center py-6">No matches for "{search}"</p>}
       </div>
 
       {newCount > 0 && (
@@ -551,6 +619,8 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE }: {
           {adding ? 'Adding…' : `Add Selected (${newCount})`}
         </button>
       )}
+
+      <Toast toast={toast} />
     </div>
   )
 }
@@ -664,7 +734,7 @@ function BundleBuilderModal({ open, onClose, heroId, bundle, coachId }: {
                 ))}
               </div>
             </div>
-            <ExercisePicker bundleId={bundle.id} bundleExercises={bundleExercises} refetchBE={refetchBE} />
+            <ExercisePicker bundleId={bundle.id} bundleExercises={bundleExercises} refetchBE={refetchBE} coachId={coachId} />
           </div>
         )}
       </div>

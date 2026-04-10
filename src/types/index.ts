@@ -195,6 +195,9 @@ export interface Exercise {
   kind: ExerciseKind
   video_url?: string
   instructions?: string
+  is_custom?: boolean
+  created_by?: string
+  created_by_name?: string
 }
 
 export interface Bundle {
