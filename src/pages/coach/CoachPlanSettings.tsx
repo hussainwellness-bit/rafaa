@@ -441,9 +441,8 @@ export default function CoachPlanSettings() {
     },
   })
 
-  // Profile completion check
-  const enabledCount = PLAN_KEYS.filter(k => plans[k].enabled).length
-  const isComplete = bio.trim().length > 0 && specialty.trim().length > 0 && parseInt(years) > 0 && enabledCount > 0
+  // Profile completion check — only bio and specialty are required
+  const isComplete = bio.trim().length > 0 && specialty.trim().length > 0
 
   return (
     <div className="space-y-6">
@@ -460,7 +459,7 @@ export default function CoachPlanSettings() {
           <div>
             <p className="text-white text-sm font-semibold">Profile incomplete</p>
             <p className="text-[#555] text-xs mt-0.5">
-              Complete your bio, specialty, years of experience, and enable at least one plan to appear on the hero discovery page.
+              Add your bio and specialty to appear on the hero discovery page.
             </p>
           </div>
         </div>
@@ -472,7 +471,7 @@ export default function CoachPlanSettings() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-[#555] font-[DM_Mono]">Years of Experience <span className="text-[#c8ff00]">*</span></label>
+            <label className="text-xs text-[#555] font-[DM_Mono]">Years of Experience</label>
             <input
               type="number" min={0} max={50}
               value={years}
@@ -482,24 +481,28 @@ export default function CoachPlanSettings() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-[#555] font-[DM_Mono]">Specialty <span className="text-[#c8ff00]">*</span></label>
+            <label className="text-xs text-[#555] font-[DM_Mono]">Specialty <span className="text-[#ff3d3d]">*</span></label>
             <input
               value={specialty}
               onChange={e => setSpecialty(e.target.value)}
               placeholder="e.g. Fat Loss · Muscle Building"
-              className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-[#f2f2f2] placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00]/40 font-[DM_Mono] text-[14px]"
+              className={`w-full px-4 py-3 bg-[#1e1e1e] rounded-[10px] text-[#f2f2f2] placeholder:text-[#333] focus:outline-none font-[DM_Mono] text-[14px] border ${
+                specialty.trim().length === 0 ? 'border-[#ff3d3d]/50 focus:border-[#ff3d3d]' : 'border-[#2a2a2a] focus:border-[#c8ff00]/40'
+              }`}
             />
           </div>
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-[#555] font-[DM_Mono]">Bio <span className="text-[#c8ff00]">*</span></label>
+          <label className="text-xs text-[#555] font-[DM_Mono]">Bio <span className="text-[#ff3d3d]">*</span></label>
           <textarea
             rows={3}
             value={bio}
             onChange={e => setBio(e.target.value)}
             placeholder="Tell heroes about yourself and your coaching approach..."
-            className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-[#f2f2f2] placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00]/40 font-[DM_Mono] text-[13px] resize-none"
+            className={`w-full px-4 py-3 bg-[#1e1e1e] rounded-[10px] text-[#f2f2f2] placeholder:text-[#333] focus:outline-none font-[DM_Mono] text-[13px] resize-none border ${
+              bio.trim().length === 0 ? 'border-[#ff3d3d]/50 focus:border-[#ff3d3d]' : 'border-[#2a2a2a] focus:border-[#c8ff00]/40'
+            }`}
           />
         </div>
 

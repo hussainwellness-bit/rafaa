@@ -113,15 +113,10 @@ export default function CoachDashboard() {
       </div>
 
       {/* Profile completion warning — computed from actual fields in real time */}
-      {(() => {
-        const bio = profile?.coach_bio ?? ''
-        const specialty = profile?.coach_specialty ?? ''
-        const isComplete = bio.trim().length > 0 && specialty.trim().length > 0
-        console.log('[ProfileBanner] coach_bio:', bio)
-        console.log('[ProfileBanner] coach_specialty:', specialty)
-        console.log('[ProfileBanner] showing banner:', !isComplete)
-        return !isComplete
-      })() && (
+      {!(
+        (profile?.coach_bio ?? '').trim().length > 0 &&
+        (profile?.coach_specialty ?? '').trim().length > 0
+      ) && (
         <Link
           to="/coach/plans"
           className="flex items-center justify-between p-4 bg-[#ff3d3d]/5 border border-[#ff3d3d]/20 rounded-[14px] hover:bg-[#ff3d3d]/8 transition-colors"
@@ -130,7 +125,7 @@ export default function CoachDashboard() {
             <span className="text-2xl">⚠️</span>
             <div>
               <p className="text-white font-semibold text-sm">Complete your profile to appear on hero discovery</p>
-              <p className="text-[#555] text-xs">Add your bio, specialty, and at least one plan with pricing</p>
+              <p className="text-[#555] text-xs">Add your bio and specialty to appear on hero discovery</p>
             </div>
           </div>
           <span className="text-[#ff3d3d] text-sm shrink-0">Complete →</span>
