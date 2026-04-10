@@ -5,7 +5,8 @@ import ProtectedRoute from './components/layout/ProtectedRoute'
 import RoleRouter from './components/layout/RoleRouter'
 import LoginPage from './pages/auth/LoginPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
-import UpdatePasswordPage from './pages/auth/UpdatePasswordPage'
+import AuthCallback from './pages/auth/AuthCallback'
+import UpdatePassword from './pages/auth/UpdatePassword'
 import AdminLayout from './pages/admin/AdminLayout'
 import CoachLayout from './pages/coach/CoachLayout'
 import HeroLayout from './pages/hero/HeroLayout'
@@ -27,7 +28,8 @@ export default function App() {
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/update-password" element={<UpdatePasswordPage />} />
+            <Route path="/update-password" element={<UpdatePassword />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/join" element={<OnboardingFlow />} />
             <Route path="/apply-as-coach" element={<CoachApply />} />
             <Route path="/terms" element={<TermsPage />} />
