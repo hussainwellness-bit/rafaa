@@ -775,16 +775,20 @@ function BundleBuilderModal({ open, onClose, heroId, bundle, coachId }: {
     if (idx !== overIdx) setOverIdx(idx)
   }
 
-  const handleDrop = async (dropIdx: number) => {
+  const handleDrop = (dropIdx: number) => {
     if (dragIdx === null || dragIdx === dropIdx) { handleDragEnd(); return }
     const newList = [...bundleExercises]
     const [item] = newList.splice(dragIdx, 1)
     newList.splice(dropIdx, 0, item)
     setDragIdx(null); setOverIdx(null)
-    for (let i = 0; i < newList.length; i++) {
-      await supabase.from('bundle_exercises').update({ sort_order: i }).eq('id', newList[i].id)
-    }
-    refetchBE()
+
+    // 1. Update cache immediately — instant UI, no waiting
+    qc.setQueryData(['bundle-exercises', bundle?.id], newList)
+
+    // 2. Write to DB in background — fire and forget
+    newList.forEach((ex, i) => {
+      supabase.from('bundle_exercises').update({ sort_order: i }).eq('id', ex.id).then()
+    })
   }
 
   return (

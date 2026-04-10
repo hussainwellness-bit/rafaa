@@ -38,6 +38,12 @@ Deno.serve(async (req) => {
     })
   }
 
+  // ── Early env diagnostics ─────────────────────────────────────────────────
+  console.log('[activate-hero] starting for heroId:', heroId)
+  console.log('[activate-hero] RESEND_API_KEY exists:', !!Deno.env.get('RESEND_API_KEY'))
+  console.log('[activate-hero] RESEND_FROM:', Deno.env.get('RESEND_FROM') ?? '(not set — will use default)')
+  console.log('[activate-hero] APP_URL:', Deno.env.get('APP_URL') ?? '(not set — will use default)')
+
   // ── Admin client (service role — bypasses RLS) ─────────────────────────────
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
