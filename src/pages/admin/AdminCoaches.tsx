@@ -432,7 +432,7 @@ export default function AdminCoaches() {
         subscription_status: 'active',
         subscription_start:  start,
         subscription_end:    endStr,
-        accepting_heroes:    false, // coach still needs to set up profile first
+        accepting_heroes:    true,
       }).eq('id', coach.id)
       if (error) throw error
 

@@ -3,16 +3,15 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import type { Profile } from '../../types'
-import { PLAN_PRICES } from '../../types'
 import StatCard from '../../components/ui/StatCard'
 import Card from '../../components/ui/Card'
 import Badge from '../../components/ui/Badge'
 import Spinner from '../../components/ui/Spinner'
 
+const MONTHLY_RATES: Record<string, number> = { A: 99, B: 149, C: 279 }
+
 function planMRR(hero: Profile) {
-  if (!hero.plan_type || !hero.plan_billing) return 0
-  const months = hero.plan_billing === 'monthly' ? 1 : hero.plan_billing === 'semi_annual' ? 6 : 12
-  return (PLAN_PRICES[hero.plan_type]?.[hero.plan_billing] ?? 0) / months
+  return MONTHLY_RATES[hero.plan_type ?? ''] ?? 0
 }
 
 export default function CoachDashboard() {
@@ -77,7 +76,8 @@ export default function CoachDashboard() {
 
   const activeHeroes = heroes.filter(h => h.is_active)
   const physicalHeroes = heroes.filter(h => h.is_physical)
-  const mrr = heroes.reduce((sum, h) => sum + planMRR(h), 0)
+  const mrr = activeHeroes.reduce((sum, h) => sum + planMRR(h), 0)
+  console.log('[MRR] heroes:', heroes.length, 'active:', activeHeroes.length, 'mrr:', mrr)
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><Spinner size={32} className="text-[#c8ff00]" /></div>
 
@@ -113,12 +113,15 @@ export default function CoachDashboard() {
       </div>
 
       {/* Profile completion warning — computed from actual fields in real time */}
-      {!(
-        (profile?.coach_bio ?? '').trim().length > 0 &&
-        (profile?.coach_specialty ?? '').trim().length > 0 &&
-        (profile?.years_experience ?? 0) > 0 &&
-        Object.values(profile?.plans_config ?? {}).some((p: { enabled?: boolean }) => p.enabled === true)
-      ) && (
+      {(() => {
+        const bio = profile?.coach_bio ?? ''
+        const specialty = profile?.coach_specialty ?? ''
+        const isComplete = bio.trim().length > 0 && specialty.trim().length > 0
+        console.log('[ProfileBanner] coach_bio:', bio)
+        console.log('[ProfileBanner] coach_specialty:', specialty)
+        console.log('[ProfileBanner] showing banner:', !isComplete)
+        return !isComplete
+      })() && (
         <Link
           to="/coach/plans"
           className="flex items-center justify-between p-4 bg-[#ff3d3d]/5 border border-[#ff3d3d]/20 rounded-[14px] hover:bg-[#ff3d3d]/8 transition-colors"

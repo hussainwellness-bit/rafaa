@@ -914,6 +914,7 @@ export default function OnboardingFlow() {
   }
 
   async function handleSurveySubmit(survey: SurveyData) {
+    console.log('[HeroRequest] submitting with coach_id:', data.coach!.id)
     const { error } = await supabase.from('hero_requests').insert({
       coach_id: data.coach!.id,
       plan_type: data.planType,

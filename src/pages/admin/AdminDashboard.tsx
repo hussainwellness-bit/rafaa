@@ -8,10 +8,8 @@ import type { Profile } from '../../types'
 import { PLAN_PRICES } from '../../types'
 
 function calcMRR(heroes: Profile[]) {
-  return heroes.filter(h => h.is_active && h.plan_type && h.plan_billing).reduce((sum, h) => {
-    const price = PLAN_PRICES[h.plan_type!]?.[h.plan_billing!] ?? 0
-    const months = h.plan_billing === 'monthly' ? 1 : h.plan_billing === 'semi_annual' ? 6 : 12
-    return sum + price / months
+  return heroes.filter(h => h.is_active && h.plan_type).reduce((sum, h) => {
+    return sum + (PLAN_PRICES[h.plan_type!]?.monthly ?? 0)
   }, 0)
 }
 

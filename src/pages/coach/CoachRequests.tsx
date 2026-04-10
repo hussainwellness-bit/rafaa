@@ -235,11 +235,13 @@ export default function CoachRequests() {
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ['coach-requests', coachId],
     queryFn: async () => {
-      const { data } = await supabase
+      console.log('[CoachRequests] fetching for coachId:', coachId)
+      const { data, error } = await supabase
         .from('hero_requests')
         .select('*')
         .eq('coach_id', coachId)
         .order('created_at', { ascending: false })
+      console.log('[CoachRequests] results:', data, 'error:', error)
       return (data ?? []) as HeroRequest[]
     },
     enabled: !!coachId,

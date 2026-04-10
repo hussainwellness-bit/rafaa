@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
 
   // ── 2. Insert profile with temp UUID ──────────────────────────────────────
   // subscription_start/end left null — set when admin confirms payment
-  const { error: profileInsertErr } = await supabaseAdmin.from('profiles').insert({
+  const profileData = {
     id:                  crypto.randomUUID(),
     email:               req_data.email,
     full_name:           req_data.full_name,
@@ -75,7 +75,9 @@ Deno.serve(async (req) => {
     is_profile_complete: false,
     is_active:           true,
     created_at:          new Date().toISOString(),
-  })
+  }
+  console.log('[ApproveCoach] inserting profile:', JSON.stringify(profileData))
+  const { error: profileInsertErr } = await supabaseAdmin.from('profiles').insert(profileData)
 
   if (profileInsertErr) {
     console.error('[approve-coach] profile insert error:', profileInsertErr.message)
