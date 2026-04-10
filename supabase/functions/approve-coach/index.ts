@@ -1,12 +1,13 @@
 // ── approve-coach ─────────────────────────────────────────────────────────────
-// Called by super admin to approve a coach request.
+// Called by super admin to approve a coach application.
 // Steps:
-//   1. Load coach_request by id
-//   2. Insert profile row (with temp UUID so trigger can link properly)
-//   3. Create auth user via admin API (trigger fires, updates profile.id)
+//   1. Load coach_request
+//   2. Insert profile row (temp UUID so trigger can link on auth create)
+//   3. Create auth user via admin API
 //   4. Update profile with full coach data
-//   5. Update coach_request.status = 'approved'
-//   6. Send approval email + credentials email via Resend
+//   5. Generate secure password-setup link via generateLink('recovery')
+//   6. Send single welcome email with setup link (NO plain text password)
+//   7. Mark request as approved
 //
 // Deploy: supabase functions deploy approve-coach --no-verify-jwt
 // ─────────────────────────────────────────────────────────────────────────────
@@ -16,14 +17,6 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-function calcSubscriptionEnd(plan: string, start: Date): string {
-  const d = new Date(start)
-  if (plan === '3_months') d.setMonth(d.getMonth() + 3)
-  else if (plan === '6_months') d.setMonth(d.getMonth() + 6)
-  else d.setFullYear(d.getFullYear() + 1)
-  return d.toISOString().slice(0, 10)
 }
 
 function planLabel(plan: string): string {
@@ -57,20 +50,16 @@ Deno.serve(async (req) => {
     .select('*')
     .eq('id', requestId)
     .single()
+
   if (reqErr || !req_data) {
     return new Response(JSON.stringify({ error: 'Request not found' }), { status: 404, headers: corsHeaders })
   }
-
   if (req_data.status !== 'pending') {
     return new Response(JSON.stringify({ error: 'Request is not pending' }), { status: 400, headers: corsHeaders })
   }
 
-  // ── 2. Insert profile with temp UUID (so trigger can find it by email) ────
-  const today = new Date().toISOString().slice(0, 10)
-  const subscriptionEnd = req_data.subscription_plan
-    ? calcSubscriptionEnd(req_data.subscription_plan, new Date())
-    : null
-
+  // ── 2. Insert profile with temp UUID ──────────────────────────────────────
+  // subscription_start/end left null — set when admin confirms payment
   const { error: profileInsertErr } = await supabaseAdmin.from('profiles').insert({
     id:                  crypto.randomUUID(),
     email:               req_data.email,
@@ -81,8 +70,6 @@ Deno.serve(async (req) => {
     coach_specialty:     req_data.specialty ?? null,
     years_experience:    req_data.years_experience ?? null,
     subscription_plan:   req_data.subscription_plan ?? null,
-    subscription_start:  today,
-    subscription_end:    subscriptionEnd,
     subscription_status: 'pending',
     accepting_heroes:    false,
     is_profile_complete: false,
@@ -97,17 +84,17 @@ Deno.serve(async (req) => {
   console.log('[approve-coach] profile row inserted for', req_data.email)
 
   // ── 3. Create auth user (trigger fires → updates profile.id to auth id) ───
-  const tempPassword = crypto.randomUUID().replace(/-/g, '').slice(0, 16) + 'Aa1!'
+  // Use a random internal password — never sent to user
+  const internalPassword = crypto.randomUUID() + crypto.randomUUID()
   const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-    email:          req_data.email,
-    password:       tempPassword,
-    email_confirm:  true,
-    user_metadata:  { full_name: req_data.full_name },
+    email:         req_data.email,
+    password:      internalPassword,
+    email_confirm: true,
+    user_metadata: { full_name: req_data.full_name },
   })
 
   if (authErr || !authData.user) {
     console.error('[approve-coach] auth user creation error:', authErr?.message)
-    // Clean up temp profile
     await supabaseAdmin.from('profiles').delete().eq('email', req_data.email)
     return new Response(JSON.stringify({ error: 'Failed to create auth user: ' + authErr?.message }), { status: 500, headers: corsHeaders })
   }
@@ -115,7 +102,7 @@ Deno.serve(async (req) => {
   const userId = authData.user.id
   console.log('[approve-coach] auth user created:', userId)
 
-  // ── 4. Ensure profile has full coach data (trigger may have simplified) ───
+  // ── 4. Update profile with full coach data ────────────────────────────────
   await supabaseAdmin.from('profiles').update({
     role:                'coach',
     full_name:           req_data.full_name,
@@ -124,29 +111,41 @@ Deno.serve(async (req) => {
     coach_specialty:     req_data.specialty ?? null,
     years_experience:    req_data.years_experience ?? null,
     subscription_plan:   req_data.subscription_plan ?? null,
-    subscription_start:  today,
-    subscription_end:    subscriptionEnd,
     subscription_status: 'pending',
     accepting_heroes:    false,
     is_profile_complete: false,
     is_active:           true,
   }).eq('id', userId)
 
-  // ── 5. Mark request as approved ───────────────────────────────────────────
+  // ── 5. Generate secure password-setup link ────────────────────────────────
+  const appUrl = Deno.env.get('APP_URL') ?? 'https://rafaa-jet.vercel.app'
+  let setupLink = appUrl
+
+  const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+    type:  'recovery',
+    email: req_data.email,
+  })
+
+  if (linkErr) {
+    console.warn('[approve-coach] generateLink failed:', linkErr.message, '— using app URL as fallback')
+  } else {
+    setupLink = linkData.properties?.action_link ?? appUrl
+    console.log('[approve-coach] setup link generated ✓')
+  }
+
+  // ── 6. Mark request as approved ───────────────────────────────────────────
   await supabaseAdmin.from('coach_requests')
     .update({ status: 'approved', updated_at: new Date().toISOString() })
     .eq('id', requestId)
 
-  // ── 6. Send emails via Resend ──────────────────────────────────────────────
+  // ── 7. Send single welcome email with setup link ──────────────────────────
   const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
   const RESEND_FROM = Deno.env.get('RESEND_FROM') ?? 'RafaaTech <onboarding@resend.dev>'
-  const appUrl = Deno.env.get('APP_URL') ?? 'https://rafaa-jet.vercel.app'
 
   if (RESEND_API_KEY) {
     const price = req_data.subscription_price ?? 0
     const planName = planLabel(req_data.subscription_plan ?? '')
 
-    // Email 1: Approval + payment instructions
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -156,54 +155,52 @@ Deno.serve(async (req) => {
         subject: 'Welcome to RafaaTech — Set up your account',
         html: `
           <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#080808;color:#f2f2f2;padding:40px;border-radius:12px;">
-            <h1 style="font-size:28px;color:#c8ff00;letter-spacing:2px;">CONGRATULATIONS! 🎉</h1>
-            <p style="color:#aaa;">Hi ${req_data.full_name},</p>
-            <p>Your application to join RafaaTech as a coach has been <strong style="color:#c8ff00;">approved</strong>!</p>
-            <div style="margin:24px 0;padding:20px;background:#111;border-radius:8px;border:1px solid #222;">
-              <p style="margin:0 0 8px;color:#888;font-size:13px;">SUBSCRIPTION DETAILS</p>
-              <p style="margin:4px 0;">Plan: <strong>${planName}</strong></p>
-              <p style="margin:4px 0;">Amount: <strong style="color:#c8ff00;">${price.toLocaleString()} SAR</strong></p>
-              <p style="margin:4px 0;">Reference: <strong>${requestId}</strong></p>
-            </div>
-            <p>To activate your account, please complete payment. Use the reference above when transferring.</p>
-            <p style="margin:24px 0;">Once payment is confirmed, you can sign in at:<br/>
-              <a href="${appUrl}" style="color:#c8ff00;">${appUrl}</a>
+            <h1 style="font-size:28px;color:#c8ff00;letter-spacing:2px;margin-bottom:8px;">YOUR APPLICATION IS APPROVED! 🎉</h1>
+            <p style="color:#aaa;margin-bottom:24px;">Hi ${req_data.full_name},</p>
+
+            <p style="font-size:15px;line-height:1.6;">
+              Congratulations! Your application to join RafaaTech as a coach has been <strong style="color:#c8ff00;">approved</strong>.
             </p>
-            <p style="color:#aaa;font-size:14px;">Your login credentials will be sent in a separate email.</p>
-            <p style="color:#666;font-size:13px;margin-top:32px;">— The RafaaTech Team</p>
-          </div>
-        `,
-      }),
-    }).catch(e => console.warn('[approve-coach] approval email failed:', e))
 
-    // Email 2: Login credentials
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: RESEND_FROM,
-        to: [req_data.email],
-        subject: 'Your RafaaTech login details',
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#080808;color:#f2f2f2;padding:40px;border-radius:12px;">
-            <h1 style="font-size:24px;color:#c8ff00;">YOUR LOGIN DETAILS</h1>
-            <p style="color:#aaa;">Hi ${req_data.full_name},</p>
-            <p>Here are your RafaaTech login credentials:</p>
-            <div style="margin:20px 0;padding:20px;background:#111;border-radius:8px;border:1px solid #222;font-family:monospace;">
-              <p style="margin:4px 0;">Email: <strong style="color:#c8ff00;">${req_data.email}</strong></p>
-              <p style="margin:4px 0;">Password: <strong style="color:#c8ff00;">${tempPassword}</strong></p>
+            <p style="font-size:15px;line-height:1.6;margin-top:16px;">
+              Click the button below to set your password and access your dashboard:
+            </p>
+
+            <div style="text-align:center;margin:32px 0;">
+              <a href="${setupLink}"
+                style="display:inline-block;background:#c8ff00;color:#080808;font-weight:bold;font-size:14px;letter-spacing:2px;text-transform:uppercase;padding:14px 32px;border-radius:100px;text-decoration:none;">
+                SET UP MY ACCOUNT →
+              </a>
             </div>
-            <p>Sign in at: <a href="${appUrl}" style="color:#c8ff00;">${appUrl}</a></p>
-            <p style="color:#888;font-size:13px;">Please change your password after your first login.</p>
+
+            <p style="color:#666;font-size:13px;text-align:center;margin-bottom:32px;">
+              This link expires in 24 hours. If it expires, use the "Forgot password?" option on the sign-in page.
+            </p>
+
+            <div style="padding:20px;background:#111;border-radius:8px;border:1px solid #222;margin-bottom:24px;">
+              <p style="margin:0 0 12px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:2px;">Subscription Details</p>
+              <p style="margin:4px 0;font-size:14px;">Plan: <strong>${planName}</strong></p>
+              <p style="margin:4px 0;font-size:14px;">Amount: <strong style="color:#c8ff00;">${price.toLocaleString()} SAR</strong></p>
+              <p style="margin:4px 0;font-size:14px;">Reference: <strong>${requestId}</strong></p>
+            </div>
+
+            <p style="font-size:15px;line-height:1.6;">Once you've set up your account, here's what to do next:</p>
+            <ol style="color:#aaa;font-size:14px;line-height:2;padding-left:20px;">
+              <li>Complete your coach profile</li>
+              <li>Set up your plan pricing</li>
+              <li>Wait for payment confirmation from our team</li>
+              <li>Start accepting heroes!</li>
+            </ol>
+
             <p style="color:#666;font-size:13px;margin-top:32px;">— The RafaaTech Team</p>
           </div>
         `,
       }),
-    }).catch(e => console.warn('[approve-coach] credentials email failed:', e))
+    }).catch(e => console.warn('[approve-coach] welcome email failed:', e))
 
-    console.log('[approve-coach] emails sent to', req_data.email)
+    console.log('[approve-coach] welcome email sent to', req_data.email)
   } else {
-    console.warn('[approve-coach] RESEND_API_KEY not set — emails skipped')
+    console.warn('[approve-coach] RESEND_API_KEY not set — email skipped')
   }
 
   return new Response(

@@ -419,9 +419,20 @@ export default function AdminCoaches() {
   async function confirmPayment(coach: Profile) {
     setConfirmingPayment(coach.id)
     try {
+      // Calculate subscription start/end now (payment date = activation date)
+      const today = new Date()
+      const start = today.toISOString().slice(0, 10)
+      const end = new Date(today)
+      if (coach.subscription_plan === '3_months') end.setMonth(end.getMonth() + 3)
+      else if (coach.subscription_plan === '6_months') end.setMonth(end.getMonth() + 6)
+      else if (coach.subscription_plan === '1_year') end.setFullYear(end.getFullYear() + 1)
+      const endStr = end.toISOString().slice(0, 10)
+
       const { error } = await supabase.from('profiles').update({
         subscription_status: 'active',
-        accepting_heroes: true,
+        subscription_start:  start,
+        subscription_end:    endStr,
+        accepting_heroes:    false, // coach still needs to set up profile first
       }).eq('id', coach.id)
       if (error) throw error
 
@@ -429,13 +440,16 @@ export default function AdminCoaches() {
       await supabase.from('notifications').insert({
         user_id: coach.id,
         title: 'Payment Confirmed! 🎉',
-        body: 'Your payment has been confirmed. Your account is now active. Start setting up your profile!',
+        body: 'Your payment has been confirmed. Your RafaaTech account is now active. Complete your profile to start accepting heroes!',
         type: 'system',
         read: false,
       })
 
       qc.setQueryData(['admin-coaches'], (old: Profile[] | undefined) =>
-        (old ?? []).map(c => c.id === coach.id ? { ...c, subscription_status: 'active', accepting_heroes: true } : c)
+        (old ?? []).map(c => c.id === coach.id
+          ? { ...c, subscription_status: 'active', subscription_start: start, subscription_end: endStr }
+          : c
+        )
       )
       showToast('success', `Payment confirmed for ${coach.full_name} ✓`)
     } catch (e) {

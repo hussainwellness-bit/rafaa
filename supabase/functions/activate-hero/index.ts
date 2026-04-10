@@ -89,10 +89,10 @@ Deno.serve(async (req) => {
     console.log('[activate-hero] Hero was already active — skipping update, just resending email')
   }
 
-  // ── 3. Send login email via Resend ─────────────────────────────────────────
+  // ── 3. Generate secure password-setup link ────────────────────────────────
   const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
   const RESEND_FROM = Deno.env.get('RESEND_FROM') ?? 'RafaaTech <onboarding@resend.dev>'
-  const appUrl = Deno.env.get('APP_URL') ?? 'https://hussain-lifts.vercel.app'
+  const appUrl = Deno.env.get('APP_URL') ?? 'https://rafaa-jet.vercel.app'
 
   if (!RESEND_API_KEY) {
     console.error('[activate-hero] RESEND_API_KEY not set')
@@ -100,6 +100,19 @@ Deno.serve(async (req) => {
       JSON.stringify({ success: true, emailSent: false, emailError: 'RESEND_API_KEY not configured' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
+  }
+
+  // Use generateLink so hero sets their own password — no plain text password in email
+  let setupLink = appUrl
+  const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+    type:  'recovery',
+    email: heroEmail,
+  })
+  if (linkErr) {
+    console.warn('[activate-hero] generateLink failed:', linkErr.message, '— falling back to app URL')
+  } else {
+    setupLink = linkData.properties?.action_link ?? appUrl
+    console.log('[activate-hero] setup link generated ✓')
   }
 
   const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -111,21 +124,26 @@ Deno.serve(async (req) => {
     body: JSON.stringify({
       from: RESEND_FROM,
       to: [heroEmail],
-      subject: 'Set up your RafaaTech account — Your plan is ready!',
+      subject: 'Your RafaaTech plan is ready — Set up your account',
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#080808;color:#f2f2f2;padding:40px;border-radius:12px;">
-          <h1 style="font-size:32px;color:#c8ff00;margin-bottom:8px;letter-spacing:2px;">YOUR PLAN IS READY</h1>
+          <h1 style="font-size:32px;color:#c8ff00;margin-bottom:8px;letter-spacing:2px;">YOUR PLAN IS READY 💪</h1>
           <p style="color:#aaa;margin-bottom:24px;font-size:16px;">Hi ${heroName},</p>
-          <p style="font-size:15px;line-height:1.6;">Your coach has activated your training plan on RafaaTech.</p>
-          <p style="margin:28px 0;font-size:15px;line-height:1.6;">
-            <strong style="color:#f2f2f2;">Visit the app to set up your account:</strong><br/>
-            <a href="${appUrl}" style="color:#c8ff00;font-size:16px;font-weight:bold;">${appUrl}</a>
+          <p style="font-size:15px;line-height:1.6;">Your coach has activated your personalized training plan on RafaaTech.</p>
+          <p style="font-size:15px;line-height:1.6;margin-top:12px;">Click below to set your password and access your dashboard:</p>
+          <div style="text-align:center;margin:32px 0;">
+            <a href="${setupLink}"
+              style="display:inline-block;background:#c8ff00;color:#080808;font-weight:bold;font-size:14px;letter-spacing:2px;text-transform:uppercase;padding:14px 32px;border-radius:100px;text-decoration:none;">
+              SET UP MY ACCOUNT →
+            </a>
+          </div>
+          <p style="color:#666;font-size:13px;text-align:center;margin-bottom:32px;">
+            This link expires in 24 hours. If it expires, use "Forgot password?" on the sign-in page.
           </p>
-          <p style="font-size:15px;line-height:1.6;">Register or log in using this email address:<br/>
-            <strong style="color:#c8ff00;">${heroEmail}</strong>
-          </p>
-          <div style="margin:32px 0;padding:20px;background:#111;border-radius:8px;border:1px solid #222;">
-            <p style="margin:0;color:#888;font-size:13px;">Once inside, your personalized workout plan will be waiting. Track your sessions, nutrition, and progress — all in one place.</p>
+          <div style="padding:20px;background:#111;border-radius:8px;border:1px solid #222;">
+            <p style="margin:0;color:#888;font-size:13px;line-height:1.6;">
+              Once inside, your personalized workout plan will be waiting. Track your sessions, nutrition, and progress — all in one place.
+            </p>
           </div>
           <p style="color:#aaa;margin-top:32px;font-size:14px;">
             Let's go! 💪<br/>— The RafaaTech Team

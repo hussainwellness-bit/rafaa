@@ -11,6 +11,8 @@ import CoachLayout from './pages/coach/CoachLayout'
 import HeroLayout from './pages/hero/HeroLayout'
 import OnboardingFlow from './pages/onboarding/OnboardingFlow'
 import CoachApply from './pages/coach/CoachApply'
+import TermsPage from './pages/legal/TermsPage'
+import PrivacyPage from './pages/legal/PrivacyPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -28,6 +30,8 @@ export default function App() {
             <Route path="/update-password" element={<UpdatePasswordPage />} />
             <Route path="/join" element={<OnboardingFlow />} />
             <Route path="/apply-as-coach" element={<CoachApply />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
 
             {/* Role router (redirects to role-appropriate home) */}
             <Route path="/" element={<RoleRouter />} />

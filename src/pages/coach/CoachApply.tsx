@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { SubscriptionPlan } from '../../types'
 import Button from '../../components/ui/Button'
@@ -200,9 +200,9 @@ export default function CoachApply() {
           <div className="space-y-3">
             <p className="text-[#888] text-xs font-bold uppercase tracking-widest">Consent</p>
             {[
-              { key: 'terms' as const, label: 'I have read and agree to the Terms & Conditions' },
-              { key: 'privacy' as const, label: 'I have read and agree to the Privacy Policy' },
-            ].map(({ key, label }) => (
+              { key: 'terms' as const, label: 'I have read and agree to the ', linkLabel: 'Terms & Conditions', to: '/terms' },
+              { key: 'privacy' as const, label: 'I have read and agree to the ', linkLabel: 'Privacy Policy', to: '/privacy' },
+            ].map(({ key, label, linkLabel, to }) => (
               <label key={key} className="flex items-start gap-3 cursor-pointer">
                 <div
                   onClick={() => set(key, !form[key])}
@@ -214,7 +214,12 @@ export default function CoachApply() {
                 >
                   {form[key] && <span className="text-[#080808] text-xs font-bold">✓</span>}
                 </div>
-                <span className="text-[#aaa] text-[14px] leading-relaxed">{label}</span>
+                <span className="text-[#aaa] text-[14px] leading-relaxed">
+                  {label}
+                  <Link to={to} target="_blank" className="text-[#c8ff00] hover:text-white transition-colors underline underline-offset-2">
+                    {linkLabel}
+                  </Link>
+                </span>
               </label>
             ))}
           </div>
