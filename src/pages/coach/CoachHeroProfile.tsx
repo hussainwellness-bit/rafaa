@@ -678,11 +678,26 @@ function BundleBuilderModal({ open, onClose, heroId, bundle, coachId }: {
     },
   })
 
-  const moveEx = async (idx: number, dir: -1 | 1) => {
-    const newList = [...bundleExercises]; const target = idx + dir
-    if (target < 0 || target >= newList.length) return
-    ;[newList[idx], newList[target]] = [newList[target], newList[idx]]
-    for (let i = 0; i < newList.length; i++) await supabase.from('bundle_exercises').update({ sort_order: i }).eq('id', newList[i].id)
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+  const [overIdx, setOverIdx] = useState<number | null>(null)
+
+  const handleDragStart = (idx: number) => setDragIdx(idx)
+  const handleDragEnd   = () => { setDragIdx(null); setOverIdx(null) }
+
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    if (idx !== overIdx) setOverIdx(idx)
+  }
+
+  const handleDrop = async (dropIdx: number) => {
+    if (dragIdx === null || dragIdx === dropIdx) { handleDragEnd(); return }
+    const newList = [...bundleExercises]
+    const [item] = newList.splice(dragIdx, 1)
+    newList.splice(dropIdx, 0, item)
+    setDragIdx(null); setOverIdx(null)
+    for (let i = 0; i < newList.length; i++) {
+      await supabase.from('bundle_exercises').update({ sort_order: i }).eq('id', newList[i].id)
+    }
     refetchBE()
   }
 
@@ -713,14 +728,29 @@ function BundleBuilderModal({ open, onClose, heroId, bundle, coachId }: {
           <div className="grid grid-cols-2 gap-6 border-t border-[#1a1a1a] pt-5">
             <div>
               <h4 className="text-[#888] text-sm font-medium uppercase tracking-wider mb-3">In Bundle ({bundleExercises.length})</h4>
-              <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1">
                 {bundleExercises.length === 0 && <p className="text-[#444] text-sm">No exercises yet.</p>}
                 {bundleExercises.map((be, idx) => (
-                  <div key={be.id} className="flex items-center gap-2 bg-[#1a1a1a] rounded-[10px] p-2.5">
-                    <div className="flex flex-col gap-0.5 shrink-0">
-                      <button onClick={() => moveEx(idx, -1)} disabled={idx === 0} className="text-[#444] hover:text-white disabled:opacity-20 text-[10px] leading-none">▲</button>
-                      <button onClick={() => moveEx(idx, 1)} disabled={idx === bundleExercises.length - 1} className="text-[#444] hover:text-white disabled:opacity-20 text-[10px] leading-none">▼</button>
-                    </div>
+                  <div
+                    key={be.id}
+                    draggable
+                    onDragStart={() => handleDragStart(idx)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={e => handleDragOver(e, idx)}
+                    onDrop={() => handleDrop(idx)}
+                    className={`flex items-center gap-2 rounded-[10px] p-2.5 transition-all select-none ${
+                      dragIdx === idx
+                        ? 'opacity-40 bg-[#2a2a2a]'
+                        : overIdx === idx && dragIdx !== null
+                        ? 'bg-[#c8ff00]/10 border border-[#c8ff00]/30'
+                        : 'bg-[#1a1a1a] border border-transparent'
+                    }`}
+                  >
+                    {/* Drag handle */}
+                    <span className="text-[#444] hover:text-[#888] cursor-grab active:cursor-grabbing shrink-0 text-sm select-none px-0.5" title="Drag to reorder">
+                      ⠿
+                    </span>
+                    <span className="text-[#444] text-[10px] font-[DM_Mono] w-4 shrink-0 text-center">{idx + 1}</span>
                     <p className="text-white text-sm flex-1 min-w-0 truncate">{be.exercise?.name ?? '—'}</p>
                     <input type="number" min={1} max={20} defaultValue={be.sets}
                       onChange={e => updateBE.mutate({ id: be.id, sets: parseInt(e.target.value) || 3, reps: be.reps })}
