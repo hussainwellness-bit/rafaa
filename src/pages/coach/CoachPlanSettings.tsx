@@ -59,11 +59,6 @@ function isDiscountExpired(expiry: string | null): boolean {
   return new Date(expiry) < new Date()
 }
 
-function effectivePrice(monthly: number, discount_active: boolean, discount_percent: number, discount_expiry: string | null): number {
-  if (!discount_active || isDiscountExpired(discount_expiry)) return monthly
-  return Math.round(monthly * (1 - discount_percent / 100))
-}
-
 // ─── Plan color map ───────────────────────────────────────────────────────────
 
 const PLAN_COLOR: Record<PlanType, string> = {
@@ -391,8 +386,6 @@ export default function CoachPlanSettings() {
   const [specialty, setSpecialty] = useState(profile?.coach_specialty ?? '')
   const [years, setYears] = useState(String(profile?.years_experience ?? ''))
   const [accepting, setAccepting] = useState(profile?.accepting_heroes !== false)
-  const [saving, setSaving] = useState(false)
-
   useEffect(() => {
     if (profile) {
       setPlans(initForms(profile.plans_config))
