@@ -6,29 +6,27 @@ export default function AuthCallback() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // First check if the token type is already in the hash (before Supabase consumes it)
+    // Read token type from hash before Supabase clears it
     const hashParams = new URLSearchParams(window.location.hash.substring(1))
     const type = hashParams.get('type')
     console.log('[AuthCallback] hash type:', type)
 
-    if (type === 'recovery' || type === 'invite') {
-      // Let Supabase process the hash, then navigate
-      supabase.auth.onAuthStateChange((event, session) => {
-        console.log('[AuthCallback] event:', event, '| session uid:', session?.user?.id)
-        if (event === 'PASSWORD_RECOVERY') {
-          navigate('/update-password', { replace: true })
-        }
-      })
-      return
-    }
-
-    // No hash type — listen for whatever event fires
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[AuthCallback] event:', event, '| session uid:', session?.user?.id)
+      console.log('[AuthCallback] event:', event, '| uid:', session?.user?.id)
+
       if (event === 'PASSWORD_RECOVERY') {
+        // recovery link — go straight to set-password page
+        subscription.unsubscribe()
         navigate('/update-password', { replace: true })
       } else if (event === 'SIGNED_IN') {
-        navigate('/', { replace: true })
+        subscription.unsubscribe()
+        if (type === 'recovery' || type === 'invite' || type === 'signup') {
+          // Signed in via an activation/invite link — hero must still set their password
+          navigate('/update-password', { replace: true })
+        } else {
+          // Normal sign-in redirect (e.g. magic link)
+          navigate('/', { replace: true })
+        }
       }
     })
 
