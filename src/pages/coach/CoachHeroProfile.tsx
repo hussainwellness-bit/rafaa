@@ -625,6 +625,79 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE, coachId }: {
   )
 }
 
+// ─── Exercise Row (controlled, saves on blur) ─────────────────────────────────
+
+function ExerciseRow({ be, idx, dragIdx, overIdx, onDragStart, onDragEnd, onDragOver, onDrop, onSave, onRemove }: {
+  be: BundleExercise; idx: number
+  dragIdx: number | null; overIdx: number | null
+  onDragStart: () => void; onDragEnd: () => void
+  onDragOver: (e: React.DragEvent) => void; onDrop: () => void
+  onSave: (id: string, sets: number, reps: string) => void
+  onRemove: (id: string) => void
+}) {
+  const [localSets, setLocalSets] = useState(be.sets || 3)
+  const [localReps, setLocalReps] = useState(be.reps || '8-10')
+
+  // Sync when "Apply to All" or external update changes be.sets / be.reps
+  useEffect(() => {
+    setLocalSets(be.sets || 3)
+    setLocalReps(be.reps || '8-10')
+  }, [be.sets, be.reps])
+
+  const save = () => onSave(be.id, localSets, localReps)
+
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      className={`flex items-center gap-2 rounded-[10px] px-2.5 py-2 transition-all select-none cursor-grab active:cursor-grabbing ${
+        dragIdx === idx
+          ? 'opacity-40 bg-[#2a2a2a]'
+          : overIdx === idx && dragIdx !== null
+          ? 'bg-[#c8ff00]/10 border border-[#c8ff00]/30'
+          : 'bg-[#1a1a1a] border border-transparent hover:border-[#333]'
+      }`}
+    >
+      {/* Handle */}
+      <span className="text-[#333] hover:text-[#c8ff00] shrink-0 select-none leading-none" style={{ fontSize: 20 }}>⠿</span>
+      {/* Index */}
+      <span className="text-[#444] text-[10px] font-[DM_Mono] w-4 shrink-0 text-center">{idx + 1}</span>
+      {/* Name */}
+      <p className="text-white text-sm flex-1 min-w-0 truncate">{be.exercise?.name ?? '—'}</p>
+      {/* Sets */}
+      <input
+        type="number" min={1} max={10}
+        value={localSets}
+        onChange={e => setLocalSets(Math.max(1, parseInt(e.target.value) || 1))}
+        onBlur={save}
+        onDragStart={e => e.stopPropagation()}
+        className="w-12 px-1.5 py-1 bg-[#111] border border-[#2a2a2a] rounded-[6px] text-white text-center text-xs cursor-text focus:outline-none focus:border-[#c8ff00]"
+      />
+      <span className="text-[#444] text-[10px] shrink-0">×</span>
+      {/* Reps */}
+      <input
+        type="text"
+        value={localReps}
+        onChange={e => setLocalReps(e.target.value)}
+        onBlur={save}
+        onDragStart={e => e.stopPropagation()}
+        placeholder="8-10"
+        className="w-16 px-1.5 py-1 bg-[#111] border border-[#2a2a2a] rounded-[6px] text-white text-center text-xs cursor-text focus:outline-none focus:border-[#c8ff00]"
+      />
+      {/* Remove */}
+      <button
+        type="button"
+        onClick={e => { e.stopPropagation(); onRemove(be.id) }}
+        onDragStart={e => e.stopPropagation()}
+        className="text-[#ff3d3d]/40 hover:text-[#ff3d3d] text-sm shrink-0 cursor-pointer leading-none"
+      >✕</button>
+    </div>
+  )
+}
+
 // ─── Bundle Builder ──────────────────────────────────────────────────────────
 
 function BundleBuilderModal({ open, onClose, heroId, bundle, coachId }: {
@@ -668,7 +741,8 @@ function BundleBuilderModal({ open, onClose, heroId, bundle, coachId }: {
 
   const updateBE = useMutation({
     mutationFn: async ({ id, sets, reps }: { id: string; sets: number; reps: string }) => {
-      await supabase.from('bundle_exercises').update({ sets, reps }).eq('id', id); refetchBE()
+      await supabase.from('bundle_exercises').update({ sets, reps }).eq('id', id)
+      // No refetchBE here — called explicitly only when needed (e.g. Apply to All)
     },
   })
 
@@ -769,42 +843,17 @@ function BundleBuilderModal({ open, onClose, heroId, bundle, coachId }: {
               <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-1">
                 {bundleExercises.length === 0 && <p className="text-[#444] text-sm">No exercises yet.</p>}
                 {bundleExercises.map((be, idx) => (
-                  <div
+                  <ExerciseRow
                     key={be.id}
-                    draggable
+                    be={be} idx={idx}
+                    dragIdx={dragIdx} overIdx={overIdx}
                     onDragStart={() => handleDragStart(idx)}
                     onDragEnd={handleDragEnd}
                     onDragOver={e => handleDragOver(e, idx)}
                     onDrop={() => handleDrop(idx)}
-                    className={`flex items-center gap-2 rounded-[10px] p-2.5 transition-all select-none cursor-grab active:cursor-grabbing ${
-                      dragIdx === idx
-                        ? 'opacity-40 bg-[#2a2a2a]'
-                        : overIdx === idx && dragIdx !== null
-                        ? 'bg-[#c8ff00]/10 border border-[#c8ff00]/30'
-                        : 'bg-[#1a1a1a] border border-transparent hover:border-[#333]'
-                    }`}
-                  >
-                    {/* Drag handle */}
-                    <span className="text-[#333] hover:text-[#c8ff00] shrink-0 select-none leading-none" style={{ fontSize: 20 }}>
-                      ⠿
-                    </span>
-                    <span className="text-[#444] text-[10px] font-[DM_Mono] w-4 shrink-0 text-center">{idx + 1}</span>
-                    <p className="text-white text-sm flex-1 min-w-0 truncate">{be.exercise?.name ?? '—'}</p>
-                    <input type="number" min={1} max={20} defaultValue={be.sets}
-                      onDragStart={e => e.stopPropagation()}
-                      onChange={e => updateBE.mutate({ id: be.id, sets: parseInt(e.target.value) || 3, reps: be.reps })}
-                      className="w-12 px-1.5 py-1 bg-[#111] border border-[#333] rounded-[6px] text-white text-center text-xs cursor-text" />
-                    <span className="text-[#555] text-[10px]">×</span>
-                    <input type="text" defaultValue={be.reps}
-                      onDragStart={e => e.stopPropagation()}
-                      onChange={e => updateBE.mutate({ id: be.id, sets: be.sets, reps: e.target.value })}
-                      className="w-14 px-1.5 py-1 bg-[#111] border border-[#333] rounded-[6px] text-white text-center text-xs cursor-text" placeholder="8-10" />
-                    <button
-                      onClick={e => { e.stopPropagation(); removeBE.mutate(be.id) }}
-                      onDragStart={e => e.stopPropagation()}
-                      className="text-[#ff3d3d]/40 hover:text-[#ff3d3d] text-sm shrink-0 cursor-pointer"
-                    >✕</button>
-                  </div>
+                    onSave={(id, sets, reps) => updateBE.mutate({ id, sets, reps })}
+                    onRemove={id => removeBE.mutate(id)}
+                  />
                 ))}
               </div>
             </div>
