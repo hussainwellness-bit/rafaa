@@ -238,8 +238,10 @@ function CoachDiscoveryStep({ onSelect, onBack }: {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id,full_name,coach_bio,coach_specialty,years_experience,hero_count,accepting_heroes,is_active,coach_type,plans_config,is_profile_complete,role')
+        .select('id,full_name,coach_bio,coach_specialty,years_experience,hero_count,accepting_heroes,is_active,coach_type,plans_config,is_profile_complete,role,subscription_status')
         .in('role', ['coach', 'super_admin'])
+        .eq('subscription_status', 'active')
+        .eq('accepting_heroes', true)
         .order('full_name')
       console.log('[CoachDiscovery] rows:', data?.length ?? 0, 'error:', error?.message ?? null)
       if (error) throw error

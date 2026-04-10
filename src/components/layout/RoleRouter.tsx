@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import Spinner from '../ui/Spinner'
+import LandingPage from '../../pages/landing/LandingPage'
 
 export default function RoleRouter() {
   const { profile, loading } = useAuth()
@@ -11,7 +12,8 @@ export default function RoleRouter() {
     </div>
   )
 
-  if (!profile) return <Navigate to="/login" replace />
+  // Not logged in → show landing page
+  if (!profile) return <LandingPage />
 
   switch (profile.role) {
     case 'super_admin': return <Navigate to="/admin" replace />

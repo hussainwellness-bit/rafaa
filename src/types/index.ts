@@ -1,4 +1,6 @@
 export type Role = 'super_admin' | 'coach' | 'hero'
+export type SubscriptionPlan = '3_months' | '6_months' | '1_year'
+export type SubscriptionStatus = 'pending' | 'active' | 'expired'
 export type CoachType = 'online' | 'physical'
 export type PlanType = 'A' | 'B' | 'C'
 export type PlanBilling = 'monthly' | 'semi_annual' | 'annual'
@@ -62,6 +64,30 @@ export interface Profile {
   years_experience?: number
   hero_count?: number
   is_profile_complete?: boolean
+  subscription_plan?: SubscriptionPlan
+  subscription_start?: string
+  subscription_end?: string
+  subscription_status?: SubscriptionStatus
+  created_at: string
+  updated_at?: string
+}
+
+export type CoachRequestStatus = 'pending' | 'approved' | 'rejected'
+
+export interface CoachRequest {
+  id: string
+  full_name: string
+  email: string
+  phone?: string
+  specialty?: string
+  years_experience?: number
+  bio?: string
+  subscription_plan?: SubscriptionPlan
+  subscription_price?: number
+  status: CoachRequestStatus
+  rejection_reason?: string
+  terms_accepted?: boolean
+  consent_timestamp?: string
   created_at: string
   updated_at?: string
 }

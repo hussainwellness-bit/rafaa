@@ -414,6 +414,36 @@ export default function AdminCoaches() {
   const [showAdd, setShowAdd] = useState(false)
   const [addError, setAddError] = useState('')
   const [editCoach, setEditCoach] = useState<Profile | null>(null)
+  const [confirmingPayment, setConfirmingPayment] = useState<string | null>(null)
+
+  async function confirmPayment(coach: Profile) {
+    setConfirmingPayment(coach.id)
+    try {
+      const { error } = await supabase.from('profiles').update({
+        subscription_status: 'active',
+        accepting_heroes: true,
+      }).eq('id', coach.id)
+      if (error) throw error
+
+      // Notify coach
+      await supabase.from('notifications').insert({
+        user_id: coach.id,
+        title: 'Payment Confirmed! 🎉',
+        body: 'Your payment has been confirmed. Your account is now active. Start setting up your profile!',
+        type: 'system',
+        read: false,
+      })
+
+      qc.setQueryData(['admin-coaches'], (old: Profile[] | undefined) =>
+        (old ?? []).map(c => c.id === coach.id ? { ...c, subscription_status: 'active', accepting_heroes: true } : c)
+      )
+      showToast('success', `Payment confirmed for ${coach.full_name} ✓`)
+    } catch (e) {
+      showToast('error', (e as Error).message)
+    } finally {
+      setConfirmingPayment(null)
+    }
+  }
 
   const { data: coaches = [], isLoading } = useQuery({
     queryKey: ['admin-coaches'],
@@ -489,33 +519,57 @@ export default function AdminCoaches() {
         )}
         {coaches.map(coach => {
           const heroCount = heroes.filter(h => h.coach_id === coach.id).length
+          const subStatus = coach.subscription_status
           return (
-            <Card key={coach.id} className="p-5 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-[#c8ff00]/10 border border-[#c8ff00]/20 flex items-center justify-center text-[#c8ff00] font-bold text-sm">
-                  {coach.full_name.charAt(0).toUpperCase()}
+            <Card key={coach.id} className="p-5 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#c8ff00]/10 border border-[#c8ff00]/20 flex items-center justify-center text-[#c8ff00] font-bold text-sm">
+                    {coach.full_name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">{coach.full_name}</p>
+                    <p className="text-[#555] text-sm">{coach.email}</p>
+                    {coach.phone && <p className="text-[#444] text-xs">{coach.phone}</p>}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-white font-semibold">{coach.full_name}</p>
-                  <p className="text-[#555] text-sm">{coach.email}</p>
-                  {coach.phone && <p className="text-[#444] text-xs">{coach.phone}</p>}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="muted">{heroCount} heroes</Badge>
+                  {coach.coach_type && <Badge variant="muted" size="sm">{coach.coach_type}</Badge>}
+                  <Badge variant={coach.is_active ? 'green' : 'red'}>
+                    {coach.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
+                  {subStatus && (
+                    <Badge variant={subStatus === 'active' ? 'green' : subStatus === 'expired' ? 'red' : 'accent'} size="sm">
+                      {subStatus === 'active' ? 'Sub Active' : subStatus === 'expired' ? 'Sub Expired' : 'Pending Payment'}
+                    </Badge>
+                  )}
+                  <button
+                    onClick={() => setEditCoach(coach)}
+                    className="text-xs text-[#555] hover:text-white transition-colors px-3 py-1.5 border border-[#333] rounded-[100px] hover:border-[#555]"
+                  >
+                    Edit
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Badge variant="muted">{heroCount} heroes</Badge>
-                {coach.coach_type && (
-                  <Badge variant="muted" size="sm">{coach.coach_type}</Badge>
-                )}
-                <Badge variant={coach.is_active ? 'green' : 'red'}>
-                  {coach.is_active ? 'Active' : 'Inactive'}
-                </Badge>
-                <button
-                  onClick={() => setEditCoach(coach)}
-                  className="text-xs text-[#555] hover:text-white transition-colors px-3 py-1.5 border border-[#333] rounded-[100px] hover:border-[#555]"
-                >
-                  Edit
-                </button>
-              </div>
+              {subStatus === 'pending' && (
+                <div className="flex items-center justify-between px-4 py-3 bg-[#c8ff00]/05 border border-[#c8ff00]/20 rounded-[12px]">
+                  <div>
+                    <p className="text-[#c8ff00] text-sm font-semibold">Payment Pending</p>
+                    <p className="text-[#555] text-xs mt-0.5">
+                      {coach.subscription_plan?.replace('_', ' ')} · {coach.subscription_end ? `Ends ${coach.subscription_end}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => confirmPayment(coach)}
+                    disabled={confirmingPayment === coach.id}
+                    className="font-[DM_Mono] font-bold text-[10px] uppercase tracking-[2px] px-4 py-2 rounded-[100px] transition-all disabled:opacity-50"
+                    style={{ background: '#c8ff00', color: '#080808' }}
+                  >
+                    {confirmingPayment === coach.id ? 'Confirming...' : 'Confirm Payment'}
+                  </button>
+                </div>
+              )}
             </Card>
           )
         })}
