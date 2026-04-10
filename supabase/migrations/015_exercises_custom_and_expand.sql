@@ -9,6 +9,12 @@ ALTER TABLE exercises
   ADD COLUMN IF NOT EXISTS created_by_name text,
   ADD COLUMN IF NOT EXISTS is_custom       boolean DEFAULT false;
 
+-- 1b. Add unique constraint on name so ON CONFLICT works
+ALTER TABLE exercises
+  DROP CONSTRAINT IF EXISTS exercises_name_unique;
+ALTER TABLE exercises
+  ADD CONSTRAINT exercises_name_unique UNIQUE (name);
+
 -- 2. RLS: allow coaches to insert custom exercises
 DROP POLICY IF EXISTS "coach_insert_custom_exercise" ON exercises;
 CREATE POLICY "coach_insert_custom_exercise" ON exercises
