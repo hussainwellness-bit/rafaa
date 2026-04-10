@@ -462,7 +462,7 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE, coachId }: {
     let maxOrder = bundleExercises.reduce((m, be) => Math.max(m, be.sort_order), -1)
     for (const ex of toAdd) {
       maxOrder++
-      await supabase.from('bundle_exercises').insert({ bundle_id: bundleId, exercise_id: ex.id, sets: 3, reps: '8-12', sort_order: maxOrder })
+      await supabase.from('bundle_exercises').insert({ bundle_id: bundleId, exercise_id: ex.id, sets: 3, reps: '8-10', sort_order: maxOrder })
     }
     setChecked(new Set()); setAdding(false); refetchBE()
   }
@@ -488,7 +488,7 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE, coachId }: {
     const newEx = data as Exercise
     const maxOrder = bundleExercises.reduce((m, be) => Math.max(m, be.sort_order), -1)
     await supabase.from('bundle_exercises').insert({
-      bundle_id: bundleId, exercise_id: newEx.id, sets: 3, reps: '8-12', sort_order: maxOrder + 1,
+      bundle_id: bundleId, exercise_id: newEx.id, sets: 3, reps: '8-10', sort_order: maxOrder + 1,
     })
 
     qc.invalidateQueries({ queryKey: ['exercises'] })
@@ -680,6 +680,18 @@ function BundleBuilderModal({ open, onClose, heroId, bundle, coachId }: {
 
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [overIdx, setOverIdx] = useState<number | null>(null)
+  const [applyAllSets, setApplyAllSets] = useState(3)
+  const [applyAllReps, setApplyAllReps] = useState('8-10')
+
+  async function applyToAll() {
+    if (!bundleExercises.length) return
+    await Promise.all(
+      bundleExercises.map(be =>
+        supabase.from('bundle_exercises').update({ sets: applyAllSets, reps: applyAllReps }).eq('id', be.id)
+      )
+    )
+    refetchBE()
+  }
 
   const handleDragStart = (idx: number) => setDragIdx(idx)
   const handleDragEnd   = () => { setDragIdx(null); setOverIdx(null) }
@@ -727,8 +739,34 @@ function BundleBuilderModal({ open, onClose, heroId, bundle, coachId }: {
         {bundle && (
           <div className="grid grid-cols-2 gap-6 border-t border-[#1a1a1a] pt-5">
             <div>
-              <h4 className="text-[#888] text-sm font-medium uppercase tracking-wider mb-3">In Bundle ({bundleExercises.length})</h4>
-              <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1">
+              <h4 className="text-[#888] text-sm font-medium uppercase tracking-wider mb-2">In Bundle ({bundleExercises.length})</h4>
+
+              {/* Apply to All */}
+              {bundleExercises.length > 0 && (
+                <div className="flex items-center gap-1.5 mb-3 p-2 bg-[#111] border border-[#222] rounded-[10px]">
+                  <span className="text-[#444] text-[10px] font-[DM_Mono] shrink-0">ALL</span>
+                  <input
+                    type="number" min={1} max={20} value={applyAllSets}
+                    onChange={e => setApplyAllSets(parseInt(e.target.value) || 3)}
+                    className="w-10 px-1 py-1 bg-[#1a1a1a] border border-[#333] rounded-[6px] text-white text-center text-xs"
+                  />
+                  <span className="text-[#444] text-[10px]">×</span>
+                  <input
+                    type="text" value={applyAllReps}
+                    onChange={e => setApplyAllReps(e.target.value)}
+                    className="w-14 px-1 py-1 bg-[#1a1a1a] border border-[#333] rounded-[6px] text-white text-center text-xs"
+                    placeholder="8-10"
+                  />
+                  <button
+                    onClick={applyToAll}
+                    className="flex-1 py-1 text-[10px] font-bold uppercase tracking-wider text-[#080808] bg-[#c8ff00] rounded-[6px] hover:bg-[#d4ff33] transition-colors"
+                  >
+                    Apply to All
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-1">
                 {bundleExercises.length === 0 && <p className="text-[#444] text-sm">No exercises yet.</p>}
                 {bundleExercises.map((be, idx) => (
                   <div
@@ -738,28 +776,34 @@ function BundleBuilderModal({ open, onClose, heroId, bundle, coachId }: {
                     onDragEnd={handleDragEnd}
                     onDragOver={e => handleDragOver(e, idx)}
                     onDrop={() => handleDrop(idx)}
-                    className={`flex items-center gap-2 rounded-[10px] p-2.5 transition-all select-none ${
+                    className={`flex items-center gap-2 rounded-[10px] p-2.5 transition-all select-none cursor-grab active:cursor-grabbing ${
                       dragIdx === idx
                         ? 'opacity-40 bg-[#2a2a2a]'
                         : overIdx === idx && dragIdx !== null
                         ? 'bg-[#c8ff00]/10 border border-[#c8ff00]/30'
-                        : 'bg-[#1a1a1a] border border-transparent'
+                        : 'bg-[#1a1a1a] border border-transparent hover:border-[#333]'
                     }`}
                   >
                     {/* Drag handle */}
-                    <span className="text-[#444] hover:text-[#888] cursor-grab active:cursor-grabbing shrink-0 text-sm select-none px-0.5" title="Drag to reorder">
+                    <span className="text-[#333] hover:text-[#c8ff00] shrink-0 select-none leading-none" style={{ fontSize: 20 }}>
                       ⠿
                     </span>
                     <span className="text-[#444] text-[10px] font-[DM_Mono] w-4 shrink-0 text-center">{idx + 1}</span>
                     <p className="text-white text-sm flex-1 min-w-0 truncate">{be.exercise?.name ?? '—'}</p>
                     <input type="number" min={1} max={20} defaultValue={be.sets}
+                      onDragStart={e => e.stopPropagation()}
                       onChange={e => updateBE.mutate({ id: be.id, sets: parseInt(e.target.value) || 3, reps: be.reps })}
-                      className="w-12 px-1.5 py-1 bg-[#111] border border-[#333] rounded-[6px] text-white text-center text-xs" />
+                      className="w-12 px-1.5 py-1 bg-[#111] border border-[#333] rounded-[6px] text-white text-center text-xs cursor-text" />
                     <span className="text-[#555] text-[10px]">×</span>
                     <input type="text" defaultValue={be.reps}
+                      onDragStart={e => e.stopPropagation()}
                       onChange={e => updateBE.mutate({ id: be.id, sets: be.sets, reps: e.target.value })}
-                      className="w-14 px-1.5 py-1 bg-[#111] border border-[#333] rounded-[6px] text-white text-center text-xs" placeholder="8-12" />
-                    <button onClick={() => removeBE.mutate(be.id)} className="text-[#ff3d3d]/40 hover:text-[#ff3d3d] text-sm shrink-0">✕</button>
+                      className="w-14 px-1.5 py-1 bg-[#111] border border-[#333] rounded-[6px] text-white text-center text-xs cursor-text" placeholder="8-10" />
+                    <button
+                      onClick={e => { e.stopPropagation(); removeBE.mutate(be.id) }}
+                      onDragStart={e => e.stopPropagation()}
+                      className="text-[#ff3d3d]/40 hover:text-[#ff3d3d] text-sm shrink-0 cursor-pointer"
+                    >✕</button>
                   </div>
                 ))}
               </div>
