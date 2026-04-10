@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
   const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
     type:  'recovery',
     email: heroEmail,
+    options: { redirectTo: `${appUrl}/update-password` },
   })
   if (linkErr) {
     console.warn('[activate-hero] generateLink failed:', linkErr.message, '— falling back to app URL')
