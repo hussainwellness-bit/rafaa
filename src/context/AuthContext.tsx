@@ -32,12 +32,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase
+    // First try by id (fast path — works for coaches, admins, and heroes already linked)
+    const { data: byId } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single()
-    setProfile(data)
+      .maybeSingle()
+
+    if (byId) {
+      setProfile(byId as Profile)
+      setLoading(false)
+      return
+    }
+
+    // Profile not found by id yet — the trigger may still be running (hero just registered).
+    // Get the user's email from the session and retry by email up to 3 times.
+    const { data: { user } } = await supabase.auth.getUser()
+    const email = user?.email
+    if (!email) {
+      setProfile(null)
+      setLoading(false)
+      return
+    }
+
+    let profile: Profile | null = null
+    let attempts = 0
+    while (!profile && attempts < 3) {
+      await new Promise(r => setTimeout(r, 1000))
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle()
+      profile = (data as Profile) ?? null
+      attempts++
+    }
+
+    setProfile(profile)
     setLoading(false)
   }
 

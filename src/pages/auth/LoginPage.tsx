@@ -79,8 +79,18 @@ export default function LoginPage() {
       setSuccess('Account created! Check your email to confirm, then sign in.')
       setTab('login')
       setLoading(false)
+      return
     }
-    // On success: useEffect above redirects
+
+    // Signed in — wait for AuthContext to fetch the profile (trigger may need a moment)
+    // useEffect will redirect once profile is loaded; if profile never loads, show fallback
+    await new Promise(r => setTimeout(r, 4000))
+    // If still on this page after 4s, the profile fetch failed
+    setSuccess('Account created! Please sign in to continue.')
+    setTab('login')
+    setPassword('')
+    setConfirmPassword('')
+    setLoading(false)
   }
 
   return (
