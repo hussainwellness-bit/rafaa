@@ -1,0 +1,12 @@
+{
+  "name": "Hussain.Lift",
+  "short_name": "H.Lift",
+  "description": "Your personal fitness coaching platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#080808",
+  "icons": [
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" }
+  ]
+}

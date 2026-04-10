@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg:        #080808;
+  --color-card:      #111111;
+  --color-card2:     #1a1a1a;
+  --color-border:    #222222;
+  --color-accent:    #c8ff00;
+  --color-red:       #ff3d3d;
+  --color-blue:      #3d9fff;
+  --color-purple:    #a855f7;
+  --color-text:      #ffffff;
+  --color-muted:     #888888;
+  --color-muted2:    #555555;
+
+  --font-heading: 'Bebas Neue', sans-serif;
+  --font-body:    'Syne', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+
+  --radius-card: 16px;
+  --radius-pill: 100px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: #080808;
+  color: #ffffff;
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100svh;
+  background: #080808;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+/* Bigger base text throughout */
+p, span, div, label, li { font-size: inherit; }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up { animation: slideUp 0.3s ease forwards; }
