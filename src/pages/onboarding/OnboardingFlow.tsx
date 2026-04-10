@@ -836,7 +836,19 @@ function SurveyStep({ coach, planType, planBilling, onSubmit, onBack }: {
             </label>
           </div>
 
-          {error && <p className="text-[#ff3d3d] font-[DM_Mono] text-[12px]">{error}</p>}
+          {error && (() => {
+            const isApproved = error.startsWith('APPROVED:')
+            const msg = error.replace(/^(PENDING|APPROVED):\s*/, '')
+            return (
+              <div className={`p-4 rounded-[12px] border font-[DM_Mono] text-[12px] leading-relaxed ${
+                isApproved
+                  ? 'bg-[#c8ff00]/5 border-[#c8ff00]/30 text-[#c8ff00]'
+                  : 'bg-[#ff3d3d]/5 border-[#ff3d3d]/30 text-[#ff3d3d]'
+              }`}>
+                {msg}
+              </div>
+            )
+          })()}
 
           <AccentBtn type="submit" disabled={submitting}>
             {submitting ? 'SUBMITTING...' : 'SUBMIT REQUEST'}
@@ -915,6 +927,27 @@ export default function OnboardingFlow() {
 
   async function handleSurveySubmit(survey: SurveyData) {
     console.log('[HeroRequest] submitting with coach_id:', data.coach!.id)
+
+    // ── Duplicate check ────────────────────────────────────────────────────────
+    const email = survey.email.trim().toLowerCase()
+    const coachId = data.coach!.id
+    const { data: existing } = await supabase
+      .from('hero_requests')
+      .select('id, status')
+      .eq('email', email)
+      .eq('coach_id', coachId)
+      .in('status', ['pending', 'approved'])
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      if (existing[0].status === 'pending') {
+        throw new Error('PENDING: You already have a pending request with this coach. Please wait for their response.')
+      }
+      if (existing[0].status === 'approved') {
+        throw new Error('APPROVED: Your request has already been approved by this coach. Check your email for next steps.')
+      }
+    }
+
     const { error } = await supabase.from('hero_requests').insert({
       coach_id: data.coach!.id,
       plan_type: data.planType,
