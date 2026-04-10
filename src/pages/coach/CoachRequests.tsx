@@ -235,13 +235,22 @@ export default function CoachRequests() {
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ['coach-requests', coachId],
     queryFn: async () => {
-      console.log('[CoachRequests] fetching for coachId:', coachId)
+      // Always use auth.uid() — this is what RLS compares against coach_id
+      const { data: { user } } = await supabase.auth.getUser()
+      const authId = user?.id ?? ''
+      console.log('[CoachRequests] auth user id:', authId)
+      console.log('[CoachRequests] profile?.id:', coachId)
+      if (authId !== coachId) {
+        console.warn('[CoachRequests] MISMATCH — auth id differs from profile.id, using auth id for query')
+      }
+
       const { data, error } = await supabase
         .from('hero_requests')
         .select('*')
-        .eq('coach_id', coachId)
+        .eq('coach_id', authId)
         .order('created_at', { ascending: false })
-      console.log('[CoachRequests] results:', data, 'error:', error)
+      console.log('[CoachRequests] requests data:', data)
+      console.log('[CoachRequests] requests error:', error)
       return (data ?? []) as HeroRequest[]
     },
     enabled: !!coachId,
@@ -257,7 +266,9 @@ export default function CoachRequests() {
 
   const approve = useMutation({
     mutationFn: async (req: HeroRequest): Promise<{ hero: Profile; requestId: string }> => {
-      console.log('[Approve] START — request id:', req.id, 'coach id:', coachId)
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      const authId = authUser?.id ?? coachId
+      console.log('[Approve] START — request id:', req.id, 'auth id:', authId, 'profile id:', coachId)
 
       // Step 1 — mark request approved
       console.log('[Approve] Step 1: updating hero_requests status → approved')
@@ -288,7 +299,7 @@ export default function CoachRequests() {
         email:            req.email,
         full_name:        req.full_name,
         role:             'hero',
-        coach_id:         coachId,
+        coach_id:         authId,
         plan_type:        req.plan_type,
         plan_billing:     req.plan_billing,
         plan_start:       today,
@@ -305,7 +316,7 @@ export default function CoachRequests() {
         created_at:       new Date().toISOString(),
       }
 
-      console.log('[Approve] Step 2: inserting hero profile, id:', newHeroId, 'coach_id:', coachId)
+      console.log('[Approve] Step 2: inserting hero profile, id:', newHeroId, 'coach_id:', authId)
       const { data: heroData, error: heroErr } = await supabase
         .from('profiles')
         .insert(heroRow)
@@ -355,7 +366,7 @@ export default function CoachRequests() {
       const { error: countErr } = await supabase
         .from('profiles')
         .update({ hero_count: newCount })
-        .eq('id', coachId)
+        .eq('id', authId)
       if (countErr) {
         console.warn('[Approve] Step 5 WARN (non-fatal):', countErr.message)
       } else {

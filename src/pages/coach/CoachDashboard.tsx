@@ -21,10 +21,12 @@ export default function CoachDashboard() {
   const { data: pendingCount = 0 } = useQuery({
     queryKey: ['coach-requests-count', profile?.id],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      const authId = user?.id ?? profile!.id
       const { count } = await supabase
         .from('hero_requests')
         .select('*', { count: 'exact', head: true })
-        .eq('coach_id', profile!.id)
+        .eq('coach_id', authId)
         .eq('status', 'pending')
       return count ?? 0
     },
