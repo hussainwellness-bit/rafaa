@@ -19,9 +19,13 @@ export default function LoginPage() {
       const dest = profile.role === 'super_admin' ? '/admin' : profile.role === 'coach' ? '/coach' : '/hero'
       navigate(dest, { replace: true })
     } else if (!authLoading && !profile && loading) {
-      // Auth completed but no profile found — stop the spinner so user isn't stuck
-      setLoading(false)
-      setError('Could not load your account. Please try again.')
+      // Auth completed but no profile found — only show error after a short delay
+      // to avoid false positives during the initial auth state resolution
+      const t = setTimeout(() => {
+        setLoading(false)
+        setError('Could not load your account. Please try again.')
+      }, 3000)
+      return () => clearTimeout(t)
     }
   }, [profile, authLoading, loading, navigate])
 
