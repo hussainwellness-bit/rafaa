@@ -68,7 +68,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       attempts++
     }
 
-    setProfile(profile)
+    if (profile) {
+      // Override profile.id with the auth UUID so all downstream RLS checks
+      // (sessions, journals, nutrition) pass even if the DB hasn't been synced yet.
+      setProfile({ ...(profile as Profile), id: userId })
+    } else {
+      setProfile(null)
+    }
     setLoading(false)
   }
 

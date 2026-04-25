@@ -120,18 +120,38 @@ Deno.serve(async (req) => {
   })
 
   if (linkErr) {
-    console.log('[activate-hero] generateLink attempt 1 failed:', linkErr.message, '— creating auth user')
+    console.error('[activate-hero] generateLink attempt 1 failed — code:', linkErr.code, '| message:', linkErr.message)
+    console.error('[activate-hero] If message contains "redirect" or "not allowed", add https://rafaa-jet.vercel.app/auth/callback to Supabase Auth → URL Configuration → Redirect URLs')
 
     // No auth user yet — create one (email_confirm skips verification email)
+    // If user already exists but generateLink failed for another reason (e.g. redirect URL not allowed),
+    // createUser will fail with "User already registered" — we handle that below.
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email:         heroEmail,
       email_confirm: true,
       user_metadata: { full_name: heroName },
     })
 
-    if (createErr || !created?.user) {
-      console.error('[activate-hero] createUser failed:', createErr?.message)
-      // Fall back — link will just point to the callback page without a token
+    if (createErr) {
+      console.error('[activate-hero] createUser failed — code:', createErr.code, '| message:', createErr.message)
+      // If "User already registered", user exists but generateLink failed — likely redirect URL issue
+      // Retry generateLink without a redirectTo so Supabase uses the default site URL
+      if (createErr.message?.toLowerCase().includes('already') || createErr.code === '23505') {
+        console.log('[activate-hero] User already exists — retrying generateLink without custom redirectTo')
+        const retryNoRedirect = await supabaseAdmin.auth.admin.generateLink({
+          type:  'recovery',
+          email: heroEmail,
+        })
+        if (retryNoRedirect.error) {
+          console.error('[activate-hero] generateLink without redirectTo also failed:', retryNoRedirect.error.message)
+        } else {
+          linkData = retryNoRedirect.data
+          linkErr  = null
+          console.log('[activate-hero] generateLink without redirectTo succeeded ✓')
+        }
+      }
+    } else if (!created?.user) {
+      console.error('[activate-hero] createUser returned no user')
     } else {
       const newAuthId = created.user.id
       console.log('[activate-hero] Auth user created:', newAuthId)
