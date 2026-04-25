@@ -35,21 +35,7 @@ ALTER TABLE notifications
   ADD CONSTRAINT notifications_user_id_fkey
   FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE ON UPDATE CASCADE;
 
--- hero_identity.hero_id
-ALTER TABLE hero_identity
-  DROP CONSTRAINT IF EXISTS hero_identity_hero_id_fkey;
-ALTER TABLE hero_identity
-  ADD CONSTRAINT hero_identity_hero_id_fkey
-  FOREIGN KEY (hero_id) REFERENCES profiles(id) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- hero_health.hero_id
-ALTER TABLE hero_health
-  DROP CONSTRAINT IF EXISTS hero_health_hero_id_fkey;
-ALTER TABLE hero_health
-  ADD CONSTRAINT hero_health_hero_id_fkey
-  FOREIGN KEY (hero_id) REFERENCES profiles(id) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- ── 2. One-time sync: profiles.id → auth.users.id ─────────────────────
+--── 2. One-time sync: profiles.id → auth.users.id ─────────────────────
 -- For every hero profile whose email matches an auth user but the UUID
 -- differs, update profiles.id to the auth UUID.
 -- ON UPDATE CASCADE handles all referencing tables automatically.
