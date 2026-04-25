@@ -1,49 +1,60 @@
 -- ══════════════════════════════════════════════════════════════════════
 -- Migration 016 — Sync hero profiles.id to auth UUID + fix RLS fallback
--- Problem: hero profiles are created with crypto.randomUUID() on approval,
---          but Supabase RLS uses auth.uid() which differs → heroes can't
---          read their own profile or insert sessions/journals.
--- Fix:
---   1. Re-add FK constraints with ON UPDATE CASCADE so profiles.id can be
---      changed without violating referential integrity
---   2. One-time sync: update profiles.id to match auth.users.id for heroes
---      where the email matches but the UUID differs
---   3. Update get_my_role() and RLS policies to also accept email fallback
---      as a safety net for any edge cases
 -- ══════════════════════════════════════════════════════════════════════
 
--- ── 1. Recreate FK constraints with ON UPDATE CASCADE ──────────────────
+-- ── 1. Dynamically recreate ALL FK constraints on profiles(id) with ON UPDATE CASCADE
+-- This finds every table that references profiles.id and adds CASCADE so the
+-- one-time UPDATE below can propagate without FK violations.
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN
+    SELECT
+      tc.table_name,
+      tc.constraint_name,
+      kcu.column_name,
+      rc.delete_rule
+    FROM information_schema.table_constraints tc
+    JOIN information_schema.key_column_usage kcu
+      ON tc.constraint_name = kcu.constraint_name
+      AND tc.table_schema = kcu.table_schema
+    JOIN information_schema.referential_constraints rc
+      ON tc.constraint_name = rc.constraint_name
+      AND tc.table_schema = rc.constraint_schema
+    JOIN information_schema.key_column_usage kcu2
+      ON rc.unique_constraint_name = kcu2.constraint_name
+      AND rc.unique_constraint_schema = kcu2.table_schema
+    WHERE tc.constraint_type = 'FOREIGN KEY'
+      AND tc.table_schema = 'public'
+      AND kcu2.table_name  = 'profiles'
+      AND kcu2.column_name = 'id'
+      AND rc.update_rule  != 'CASCADE'
+  LOOP
+    EXECUTE format(
+      'ALTER TABLE public.%I DROP CONSTRAINT IF EXISTS %I',
+      r.table_name, r.constraint_name
+    );
+    EXECUTE format(
+      'ALTER TABLE public.%I ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES profiles(id) ON DELETE %s ON UPDATE CASCADE',
+      r.table_name,
+      r.constraint_name,
+      r.column_name,
+      CASE r.delete_rule WHEN 'SET NULL' THEN 'SET NULL' ELSE 'CASCADE' END
+    );
+    RAISE NOTICE 'Updated constraint % on %.%', r.constraint_name, r.table_name, r.column_name;
+  END LOOP;
+END;
+$$;
 
--- hero_requests.coach_id
-ALTER TABLE hero_requests
-  DROP CONSTRAINT IF EXISTS hero_requests_coach_id_fkey;
-ALTER TABLE hero_requests
-  ADD CONSTRAINT hero_requests_coach_id_fkey
-  FOREIGN KEY (coach_id) REFERENCES profiles(id) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- hero_requests.linked_hero_id
-ALTER TABLE hero_requests
-  DROP CONSTRAINT IF EXISTS hero_requests_linked_hero_id_fkey;
-ALTER TABLE hero_requests
-  ADD CONSTRAINT hero_requests_linked_hero_id_fkey
-  FOREIGN KEY (linked_hero_id) REFERENCES profiles(id) ON DELETE SET NULL ON UPDATE CASCADE;
-
--- notifications.user_id
-ALTER TABLE notifications
-  DROP CONSTRAINT IF EXISTS notifications_user_id_fkey;
-ALTER TABLE notifications
-  ADD CONSTRAINT notifications_user_id_fkey
-  FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE ON UPDATE CASCADE;
-
---── 2. One-time sync: profiles.id → auth.users.id ─────────────────────
--- For every hero profile whose email matches an auth user but the UUID
--- differs, update profiles.id to the auth UUID.
--- ON UPDATE CASCADE handles all referencing tables automatically.
+-- ── 2. One-time sync: profiles.id → auth.users.id ─────────────────────
+-- For every hero profile whose email matches an auth user but UUID differs,
+-- update profiles.id. ON UPDATE CASCADE propagates to all referencing tables.
 UPDATE profiles
 SET id = au.id::text
 FROM auth.users au
 WHERE profiles.email = au.email
-  AND profiles.id    != au.id::text
+  AND profiles.id   != au.id::text
   AND profiles.role  = 'hero';
 
 -- ── 3. Fix get_my_role() helper — email fallback ───────────────────────
