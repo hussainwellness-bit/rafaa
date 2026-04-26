@@ -9,6 +9,16 @@
 -- ─── sessions_v2 ─────────────────────────────────────────────────────────────
 ALTER TABLE sessions_v2 ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "sessions_v2: hero sees own" ON sessions_v2;
+DROP POLICY IF EXISTS "sessions_v2: hero insert" ON sessions_v2;
+DROP POLICY IF EXISTS "sessions_v2: hero update own" ON sessions_v2;
+DROP POLICY IF EXISTS "sessions_v2: hero delete own" ON sessions_v2;
+DROP POLICY IF EXISTS "sessions_v2: coach sees heroes' sessions" ON sessions_v2;
+DROP POLICY IF EXISTS "sessions_v2: coach delete heroes' sessions" ON sessions_v2;
+DROP POLICY IF EXISTS "sessions_v2: super_admin all" ON sessions_v2;
+DROP POLICY IF EXISTS "sessions_v2: coach insert for own heroes" ON sessions_v2;
+DROP POLICY IF EXISTS "sessions_v2: coach update for own heroes" ON sessions_v2;
+
 CREATE POLICY "sessions_v2: hero sees own"
   ON sessions_v2 FOR SELECT
   USING (user_id = auth.uid()::text);
