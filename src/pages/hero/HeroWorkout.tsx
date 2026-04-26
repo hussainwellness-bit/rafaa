@@ -108,13 +108,22 @@ export default function HeroWorkout() {
   // Opening a bundle NEVER creates a DB record.
   const ensureSession = useCallback(async (): Promise<string | null> => {
     if (sessionIdRef.current) return sessionIdRef.current
-    if (!profile?.id || !bundleId || !bundle) return null
-    const { data } = await supabase.from('sessions_v2').insert({
+    if (!profile?.id || !bundleId || !bundle) {
+      console.error('[Session] ensureSession: missing profile/bundleId/bundle', { profileId: profile?.id, bundleId, bundleName: bundle?.name })
+      return null
+    }
+    console.log('[Session] Creating session_v2 for user:', profile.id, 'bundle:', bundleId)
+    const { data, error } = await supabase.from('sessions_v2').insert({
       user_id: profile.id,
       bundle_id: bundleId,
       bundle_name: bundle.name,
       logged_at: new Date().toISOString().slice(0, 10),
     }).select().single()
+    if (error) {
+      console.error('[Session] sessions_v2 insert error:', error.message, error.code, error.details)
+      throw new Error('Could not create session: ' + error.message)
+    }
+    console.log('[Session] Created session_v2:', data)
     if (data) sessionIdRef.current = (data as { id: string }).id
     return sessionIdRef.current
   }, [profile, bundleId, bundle])
@@ -122,12 +131,16 @@ export default function HeroWorkout() {
   const autoSave = useCallback(async (currentSets: LocalSet[], currentNotes: string) => {
     const sessionId = await ensureSession()
     if (!sessionId) return
-    await supabase.from('sessions_v2')
+    const { error: updErr } = await supabase.from('sessions_v2')
       .update({ notes: currentNotes, updated_at: new Date().toISOString() }).eq('id', sessionId)
+    if (updErr) console.error('[Session] sessions_v2 update error:', updErr.message)
+
     const setsToSave = currentSets.filter(s => s.weight || s.reps || s.done)
-    await supabase.from('session_sets').delete().eq('session_id', sessionId)
+    const { error: delErr } = await supabase.from('session_sets').delete().eq('session_id', sessionId)
+    if (delErr) console.error('[Session] session_sets delete error:', delErr.message)
+
     if (setsToSave.length) {
-      await supabase.from('session_sets').insert(
+      const { error: insErr } = await supabase.from('session_sets').insert(
         setsToSave.map(s => ({
           session_id: sessionId,
           exercise_id: s.exercise_id,
@@ -138,6 +151,8 @@ export default function HeroWorkout() {
           done: s.done,
         }))
       )
+      if (insErr) console.error('[Session] session_sets insert error:', insErr.message, insErr.code, insErr.details)
+      else console.log('[Session] Saved', setsToSave.length, 'sets for session', sessionId)
     }
   }, [ensureSession])
 
