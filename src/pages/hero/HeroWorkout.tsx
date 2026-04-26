@@ -27,7 +27,7 @@ export default function HeroWorkout() {
   const { bundleId } = useParams<{ bundleId: string }>()
   const navigate = useNavigate()
   const { profile } = useAuthStore()
-  const { toasts, showToast, dismissToast } = useToast()
+  const { toast, showToast } = useToast()
   const sessionIdRef = useRef<string | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [sets, setSets] = useState<LocalSet[]>([])
@@ -191,7 +191,7 @@ export default function HeroWorkout() {
 
   return (
     <div className="pb-40 max-w-lg mx-auto">
-      <Toast toasts={toasts} onDismiss={dismissToast} />
+      <Toast toast={toast} />
 
       {/* Header */}
       <div className="px-5 pt-6 pb-4 flex items-center gap-4">
