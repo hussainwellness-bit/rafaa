@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, useRef } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import type { JournalLog, SleepQuality, Mood, Soreness, CardioType } from '../../types'
@@ -7,27 +7,40 @@ import Card from '../../components/ui/Card'
 import Spinner from '../../components/ui/Spinner'
 
 const TODAY = new Date().toISOString().slice(0, 10)
+const DAY_SHORT = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+
+function getWeekDates(): string[] {
+  const dates: string[] = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    dates.push(d.toISOString().slice(0, 10))
+  }
+  return dates
+}
+
+const WEEK_DATES = getWeekDates()
 
 const SLEEP_OPTS: { value: SleepQuality; label: string; emoji: string }[] = [
-  { value: 'deep', label: 'Deep', emoji: '😴' },
+  { value: 'deep',   label: 'Deep',   emoji: '😴' },
   { value: 'normal', label: 'Normal', emoji: '🛌' },
-  { value: 'light', label: 'Light', emoji: '😪' },
+  { value: 'light',  label: 'Light',  emoji: '😪' },
   { value: 'broken', label: 'Broken', emoji: '😫' },
 ]
 
 const MOOD_OPTS: { value: Mood; label: string; emoji: string }[] = [
-  { value: 'pumped', label: 'Pumped', emoji: '🔥' },
-  { value: 'good', label: 'Good', emoji: '😊' },
-  { value: 'normal', label: 'Normal', emoji: '😐' },
-  { value: 'tired', label: 'Tired', emoji: '😓' },
+  { value: 'pumped',    label: 'Pumped',    emoji: '🔥' },
+  { value: 'good',      label: 'Good',      emoji: '😊' },
+  { value: 'normal',    label: 'Normal',    emoji: '😐' },
+  { value: 'tired',     label: 'Tired',     emoji: '😓' },
   { value: 'exhausted', label: 'Exhausted', emoji: '💀' },
 ]
 
 const SORENESS_OPTS: { value: Soreness; label: string; emoji: string }[] = [
-  { value: 'none', label: 'None', emoji: '✅' },
-  { value: 'light', label: 'Light', emoji: '😊' },
+  { value: 'none',     label: 'None',     emoji: '✅' },
+  { value: 'light',    label: 'Light',    emoji: '😊' },
   { value: 'moderate', label: 'Moderate', emoji: '🔥' },
-  { value: 'heavy', label: 'Heavy', emoji: '💀' },
+  { value: 'heavy',    label: 'Heavy',    emoji: '💀' },
 ]
 
 const CARDIO_TYPES: CardioType[] = ['Stairs', 'Elliptical', 'Cycling', 'HIIT', 'Running', 'Other']
@@ -60,39 +73,36 @@ function PillSelector<T extends string>({ options, value, onChange }: {
 
 export default function HeroJournal() {
   const { profile } = useAuthStore()
+  const qc = useQueryClient()
   const config = profile?.journal_config
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [logId, setLogId] = useState<string | null>(null)
-  // localChanges holds only what the user has typed this session
-  // merging with dbLog gives the full state without losing data on tab switch
-  const [localChanges, setLocalChanges] = useState<Partial<JournalLog>>({})
 
-  // Fetch today's log — staleTime: Infinity so cached data is used on tab return
-  const { data: dbLog, isLoading } = useQuery({
-    queryKey: ['journal-today', profile?.id],
+  const [selectedDate, setSelectedDate] = useState(TODAY)
+  // localChanges is keyed by date so switching days preserves unsaved edits
+  const [localChanges, setLocalChanges] = useState<Record<string, Partial<JournalLog>>>({})
+
+  // Fetch all 7 days at once — staleTime: Infinity so navigating away doesn't re-fetch
+  const { data: weekLogs = [], isLoading } = useQuery({
+    queryKey: ['journal-week', profile?.id, WEEK_DATES[0]],
     queryFn: async () => {
       const { data } = await supabase
         .from('journal_logs').select('*')
-        .eq('user_id', profile!.id).eq('logged_at', TODAY).single()
-      return data as JournalLog | null
+        .eq('user_id', profile!.id)
+        .gte('logged_at', WEEK_DATES[0])
+        .lte('logged_at', WEEK_DATES[6])
+      return (data ?? []) as JournalLog[]
     },
     enabled: !!profile?.id,
-    staleTime: Infinity, // Don't re-fetch while navigating tabs
-    retry: false,
+    staleTime: Infinity,
   })
 
-  // Sync logId from DB when it loads
-  useEffect(() => {
-    if (dbLog?.id) setLogId(dbLog.id)
-  }, [dbLog?.id])
+  const dbLog = weekLogs.find(l => l.logged_at === selectedDate) ?? null
+  const log: Partial<JournalLog> = { ...dbLog, ...(localChanges[selectedDate] ?? {}) }
 
-  // Merged view: DB data as base, local changes on top
-  const log: Partial<JournalLog> = { ...dbLog, ...localChanges }
-
-  const set = <K extends keyof JournalLog>(k: K, v: JournalLog[K]) => {
+  function set<K extends keyof JournalLog>(k: K, v: JournalLog[K]) {
     setLocalChanges(prev => {
-      const next = { ...prev, [k]: v }
-      scheduleSave({ ...dbLog, ...next })
+      const next = { ...prev, [selectedDate]: { ...(prev[selectedDate] ?? {}), [k]: v } }
+      scheduleSave({ ...dbLog, ...next[selectedDate] })
       return next
     })
   }
@@ -103,14 +113,38 @@ export default function HeroJournal() {
   }
 
   async function persist(data: Partial<JournalLog>) {
-    const payload = { ...data, user_id: profile!.id, logged_at: TODAY }
-    if (logId) {
-      await supabase.from('journal_logs').update(payload).eq('id', logId)
+    const existingId = weekLogs.find(l => l.logged_at === selectedDate)?.id
+    const payload = { ...data, user_id: profile!.id, logged_at: selectedDate }
+
+    if (existingId) {
+      await supabase.from('journal_logs').update(payload).eq('id', existingId)
     } else {
-      const { data: inserted } = await supabase.from('journal_logs').insert(payload).select().single()
-      if (inserted) setLogId((inserted as JournalLog).id)
+      // upsert prevents duplicates if row was created between renders
+      const { data: upserted } = await supabase
+        .from('journal_logs')
+        .upsert(payload, { onConflict: 'user_id,logged_at' })
+        .select().single()
+      if (upserted) {
+        qc.setQueryData(
+          ['journal-week', profile?.id, WEEK_DATES[0]],
+          (old: JournalLog[] = []) => [
+            ...old.filter(l => l.logged_at !== selectedDate),
+            upserted as JournalLog,
+          ]
+        )
+        // Also update today's cache so Recovery page picks it up
+        if (selectedDate === TODAY) {
+          qc.setQueryData(['journal-today', profile?.id], upserted)
+        }
+      }
     }
+    // Invalidate recovery so it reflects the new data
+    qc.invalidateQueries({ queryKey: ['journal-today', profile?.id] })
   }
+
+  const isToday = selectedDate === TODAY
+  const selectedDObj = new Date(selectedDate + 'T12:00:00')
+  const dateLabel = selectedDObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
   if (isLoading) return <div className="flex items-center justify-center h-screen"><Spinner size={32} className="text-[#c8ff00]" /></div>
 
@@ -118,8 +152,45 @@ export default function HeroJournal() {
     <div className="p-5 max-w-lg mx-auto space-y-5">
       <div className="pt-4">
         <h1 className="font-[Bebas_Neue] text-4xl text-white tracking-wide">JOURNAL</h1>
-        <p className="text-[#888] text-[15px]">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-        <p className="text-[#333] text-sm mt-1">Auto-saves as you go</p>
+        <p className="text-[#333] text-sm mt-0.5">Auto-saves as you go</p>
+      </div>
+
+      {/* Week date selector */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+        {WEEK_DATES.map(date => {
+          const d = new Date(date + 'T12:00:00')
+          const dayName = DAY_SHORT[d.getDay()]
+          const dayNum = d.getDate()
+          const hasLog = weekLogs.some(l => l.logged_at === date)
+          const isSelected = date === selectedDate
+          const isTodayDate = date === TODAY
+
+          return (
+            <button
+              key={date}
+              onClick={() => setSelectedDate(date)}
+              className={`flex flex-col items-center gap-1 px-3 py-2.5 rounded-[14px] border transition-all shrink-0 ${
+                isSelected
+                  ? 'bg-[#c8ff00]/10 border-[#c8ff00]/60 text-[#c8ff00]'
+                  : 'border-[#222] text-[#555] hover:border-[#444] hover:text-[#888]'
+              }`}
+            >
+              <span className={`font-[DM_Mono] text-[9px] uppercase tracking-[1.5px] ${isSelected ? 'text-[#c8ff00]' : isTodayDate ? 'text-[#888]' : 'text-[#444]'}`}>
+                {isTodayDate && !isSelected ? 'TODAY' : dayName}
+              </span>
+              <span className={`font-[Bebas_Neue] text-[22px] leading-none ${isSelected ? 'text-[#c8ff00]' : isTodayDate ? 'text-white' : 'text-[#555]'}`}>
+                {dayNum}
+              </span>
+              <div className={`w-1 h-1 rounded-full transition-all ${hasLog ? (isSelected ? 'bg-[#c8ff00]' : 'bg-[#555]') : 'bg-transparent'}`} />
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Selected date label */}
+      <div className="flex items-center justify-between">
+        <p className="text-[#888] text-[15px]">{isToday ? 'Today — ' : ''}{dateLabel}</p>
+        {dbLog && <p className="text-[#555] text-xs font-[DM_Mono]">Logged ✓</p>}
       </div>
 
       {/* Steps */}
@@ -140,10 +211,13 @@ export default function HeroJournal() {
         </Card>
       )}
 
-      {/* Sleep */}
+      {/* Sleep — logged in the morning for LAST NIGHT */}
       {config?.sleep && (
         <Card className="p-6 space-y-4">
-          <p className="text-white font-semibold">Sleep</p>
+          <div>
+            <p className="text-white font-semibold">Sleep</p>
+            <p className="text-[#555] text-xs mt-0.5">Last night's sleep → affects today's recovery</p>
+          </div>
           <div className="flex items-center gap-3">
             <input
               type="number" min={0} max={24} step={0.5}
@@ -259,6 +333,8 @@ export default function HeroJournal() {
           className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#333] rounded-[14px] text-white placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00] resize-none text-[15px]"
         />
       </Card>
+
+      <div className="h-6" />
     </div>
   )
 }

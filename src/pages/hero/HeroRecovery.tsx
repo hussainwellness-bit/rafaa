@@ -7,6 +7,7 @@ import Card from '../../components/ui/Card'
 import Spinner from '../../components/ui/Spinner'
 
 const TODAY = new Date().toISOString().slice(0, 10)
+const YESTERDAY = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
 
 function ScoreRing({ score, color }: { score: number; color: string }) {
   const r = 54
@@ -33,14 +34,20 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
 export default function HeroRecovery() {
   const { profile } = useAuthStore()
 
-  const { data: todayLog, isLoading: loadingToday } = useQuery({
+  // Fetch today AND yesterday in one query
+  const { data: recentLogs = [], isLoading: loadingToday } = useQuery({
     queryKey: ['journal-today', profile?.id],
     queryFn: async () => {
-      const { data } = await supabase.from('journal_logs').select('*').eq('user_id', profile!.id).eq('logged_at', TODAY).single()
-      return data as JournalLog | null
+      const { data } = await supabase.from('journal_logs').select('*')
+        .eq('user_id', profile!.id).gte('logged_at', YESTERDAY).lte('logged_at', TODAY)
+      return (data ?? []) as JournalLog[]
     },
     enabled: !!profile?.id,
   })
+  const todayLog  = recentLogs.find(l => l.logged_at === TODAY) ?? null
+  const yesterLog = recentLogs.find(l => l.logged_at === YESTERDAY) ?? null
+  // Use today's log if it has sleep data (morning check-in done), otherwise yesterday's
+  const recoveryLog = (todayLog?.sleep_hours != null) ? todayLog : (yesterLog ?? todayLog)
 
   const { data: weekLogs = [] } = useQuery({
     queryKey: ['journal-week', profile?.id],
@@ -82,8 +89,9 @@ export default function HeroRecovery() {
 
   if (loadingToday) return <div className="flex items-center justify-center h-screen"><Spinner size={32} className="text-[#c8ff00]" /></div>
 
-  const score = todayLog ? calcRecoveryScore(todayLog) : 0
+  const score = recoveryLog ? calcRecoveryScore(recoveryLog) : 0
   const { label, color, dot } = recoveryLabel(score)
+  const recoveryDateLabel = recoveryLog?.logged_at === TODAY ? 'Today' : recoveryLog?.logged_at === YESTERDAY ? 'Yesterday' : null
 
   const avgSleep = weekLogs.length
     ? weekLogs.reduce((s, l) => s + (l.sleep_hours ?? 0), 0) / weekLogs.length
@@ -117,12 +125,17 @@ export default function HeroRecovery() {
     <div className="p-5 max-w-lg mx-auto space-y-6">
       <div className="pt-4">
         <h1 className="font-[Bebas_Neue] text-4xl text-white tracking-wide">RECOVERY</h1>
-        <p className="text-[#555] text-sm">Today's readiness</p>
+        <p className="text-[#555] text-sm">
+          {recoveryDateLabel ? `${recoveryDateLabel}'s readiness` : 'Your readiness'}
+          {recoveryLog?.logged_at === YESTERDAY && !todayLog?.sleep_hours && (
+            <span className="text-[#444]"> — log this morning to update</span>
+          )}
+        </p>
       </div>
 
-      {!todayLog ? (
+      {!recoveryLog ? (
         <Card className="p-8 text-center space-y-2">
-          <p className="text-[#555]">Log your journal first to see your recovery score.</p>
+          <p className="text-[#555]">Log your morning check-in to see your recovery score.</p>
         </Card>
       ) : (
         <Card className="p-6 flex flex-col items-center gap-4" style={{ borderColor: color + '30' }}>
@@ -150,7 +163,7 @@ export default function HeroRecovery() {
 
         <Card className="p-4">
           <p className="text-[#555] text-xs uppercase tracking-wider mb-1">Hydration Today</p>
-          <p className="font-[Bebas_Neue] text-3xl text-[#3d9fff]">{todayLog?.water_glasses ?? 0}<span className="text-lg text-[#555]">/8</span></p>
+          <p className="font-[Bebas_Neue] text-3xl text-[#3d9fff]">{recoveryLog?.water_glasses ?? 0}<span className="text-lg text-[#555]">/8</span></p>
         </Card>
 
         <Card className="p-4">
