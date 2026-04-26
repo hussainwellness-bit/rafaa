@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/authStore'
 import type { Bundle, BundleExercise } from '../../types'
 import Spinner from '../../components/ui/Spinner'
 import Button from '../../components/ui/Button'
+import Toast, { useToast } from '../../components/ui/Toast'
 
 interface LocalSet {
   exercise_id: string
@@ -21,13 +22,12 @@ interface GhostData {
 }
 
 const COL = '28px 1fr 1fr 44px'
-const INPUT_H = 56
-const INPUT_FS = 18
 
 export default function HeroWorkout() {
   const { bundleId } = useParams<{ bundleId: string }>()
   const navigate = useNavigate()
   const { profile } = useAuthStore()
+  const { toasts, showToast, dismissToast } = useToast()
   const sessionIdRef = useRef<string | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [sets, setSets] = useState<LocalSet[]>([])
@@ -63,7 +63,7 @@ export default function HeroWorkout() {
 
     async function loadGhost() {
       const { data: sessions } = await supabase
-        .from('sessions').select('id, logged_at')
+        .from('sessions_v2').select('id, logged_at')
         .eq('user_id', profile!.id).eq('bundle_id', bundleId!)
         .order('logged_at', { ascending: false })
       if (!sessions?.length) return
@@ -109,7 +109,7 @@ export default function HeroWorkout() {
   const ensureSession = useCallback(async (): Promise<string | null> => {
     if (sessionIdRef.current) return sessionIdRef.current
     if (!profile?.id || !bundleId || !bundle) return null
-    const { data } = await supabase.from('sessions').insert({
+    const { data } = await supabase.from('sessions_v2').insert({
       user_id: profile.id,
       bundle_id: bundleId,
       bundle_name: bundle.name,
@@ -122,7 +122,7 @@ export default function HeroWorkout() {
   const autoSave = useCallback(async (currentSets: LocalSet[], currentNotes: string) => {
     const sessionId = await ensureSession()
     if (!sessionId) return
-    await supabase.from('sessions')
+    await supabase.from('sessions_v2')
       .update({ notes: currentNotes, updated_at: new Date().toISOString() }).eq('id', sessionId)
     const setsToSave = currentSets.filter(s => s.weight || s.reps || s.done)
     await supabase.from('session_sets').delete().eq('session_id', sessionId)
@@ -164,7 +164,11 @@ export default function HeroWorkout() {
     },
     onSuccess: () => {
       setSaved(true)
+      showToast('success', 'Session saved ✓')
       setTimeout(() => navigate('/hero'), 1200)
+    },
+    onError: (e: Error) => {
+      showToast('error', 'Failed to save session: ' + e.message)
     },
   })
 
@@ -187,6 +191,7 @@ export default function HeroWorkout() {
 
   return (
     <div className="pb-40 max-w-lg mx-auto">
+      <Toast toasts={toasts} onDismiss={dismissToast} />
 
       {/* Header */}
       <div className="px-5 pt-6 pb-4 flex items-center gap-4">
@@ -207,16 +212,10 @@ export default function HeroWorkout() {
         {exerciseGroups.map(({ be, sets: exSets }) => {
           const ghost = ghostData[be.exercise_id]
           return (
-            <div
-              key={be.id}
-              className="rounded-[16px] border border-[#222] bg-[#111]"
-              style={{ padding: 20 }}
-            >
+            <div key={be.id} className="ex-card">
               {/* Exercise name */}
               <div className="flex items-start justify-between gap-3 mb-2">
-                <p className="text-white font-bold leading-snug" style={{ fontSize: 18 }}>
-                  {be.exercise?.name}
-                </p>
+                <p className="ex-card-name">{be.exercise?.name}</p>
                 {be.exercise?.video_url && (
                   <a
                     href={be.exercise.video_url} target="_blank" rel="noreferrer"
@@ -229,19 +228,19 @@ export default function HeroWorkout() {
 
               {/* Ghost line */}
               {ghost?.weight ? (
-                <p className="text-[#444] text-sm font-[DM_Mono] mb-4">
+                <p className="ex-ghost">
                   Ghost: {ghost.weight} kg × {ghost.reps} &nbsp;·&nbsp; {profile?.ghost_preference === 'best' ? 'PB' : 'Last'}
                 </p>
               ) : (
                 <div className="mb-4" />
               )}
 
-              {/* Column headers — same grid as rows */}
+              {/* Column headers */}
               <div className="grid gap-2 mb-1 px-1" style={{ gridTemplateColumns: COL }}>
-                <span className="text-[#444] text-xs font-semibold text-center uppercase tracking-wider">#</span>
-                <span className="text-[#555] text-xs font-semibold text-center uppercase tracking-wider">KG</span>
-                <span className="text-[#555] text-xs font-semibold text-center uppercase tracking-wider">REPS</span>
-                <span className="text-[#444] text-xs text-center">✓</span>
+                <span className="set-col-header">#</span>
+                <span className="set-col-header">KG</span>
+                <span className="set-col-header">REPS</span>
+                <span className="set-col-header">✓</span>
               </div>
 
               {/* Set rows */}
@@ -249,19 +248,10 @@ export default function HeroWorkout() {
                 {exSets.map((set, i) => {
                   const globalIdx = sets.indexOf(set)
                   const color = getInputColor(set)
-                  const inputBorder = color === 'green' ? '#22c55e' : '#2a2a2a'
-                  const inputText = set.weight || set.reps ? '#ffffff' : undefined
 
                   return (
-                    <div
-                      key={i}
-                      className={`grid gap-2 items-center px-1 rounded-[10px] transition-all ${set.done ? 'bg-[#c8ff00]/5' : ''}`}
-                      style={{ gridTemplateColumns: COL, paddingTop: 4, paddingBottom: 4 }}
-                    >
-                      {/* Set number */}
-                      <span className="text-[#555] font-[DM_Mono] text-center" style={{ fontSize: 15 }}>
-                        {set.set_number}
-                      </span>
+                    <div key={i} className={`set-row${set.done ? ' done' : ''}`}>
+                      <span className="set-num">{set.set_number}</span>
 
                       {/* KG */}
                       <input
@@ -269,14 +259,7 @@ export default function HeroWorkout() {
                         placeholder={ghost?.weight ? String(ghost.weight) : '—'}
                         value={set.weight}
                         onChange={e => updateSet(globalIdx, 'weight', e.target.value)}
-                        className="w-full rounded-[10px] text-center font-[DM_Mono] focus:outline-none transition-colors"
-                        style={{
-                          height: INPUT_H,
-                          fontSize: INPUT_FS,
-                          background: '#1e1e1e',
-                          border: `1px solid ${inputBorder}`,
-                          color: color === 'green' ? '#22c55e' : (inputText ?? '#666'),
-                        }}
+                        className={`set-input${color === 'green' ? ' pr' : set.weight ? ' has-value' : ''}`}
                       />
 
                       {/* REPS */}
@@ -285,28 +268,13 @@ export default function HeroWorkout() {
                         placeholder={ghost?.reps ? String(ghost.reps) : '—'}
                         value={set.reps}
                         onChange={e => updateSet(globalIdx, 'reps', e.target.value)}
-                        className="w-full rounded-[10px] text-center font-[DM_Mono] focus:outline-none transition-colors"
-                        style={{
-                          height: INPUT_H,
-                          fontSize: INPUT_FS,
-                          background: '#1e1e1e',
-                          border: `1px solid ${inputBorder}`,
-                          color: inputText ?? '#666',
-                        }}
+                        className={`set-input${set.reps ? ' has-value' : ''}`}
                       />
 
                       {/* Done */}
                       <button
                         onClick={() => updateSet(globalIdx, 'done', !set.done)}
-                        className="rounded-[10px] flex items-center justify-center font-bold transition-all"
-                        style={{
-                          width: 44,
-                          height: 44,
-                          fontSize: 20,
-                          background: set.done ? '#c8ff00' : '#1e1e1e',
-                          border: `1px solid ${set.done ? '#c8ff00' : '#2a2a2a'}`,
-                          color: set.done ? '#080808' : '#444',
-                        }}
+                        className={`set-check${set.done ? ' done' : ''}`}
                       >
                         {set.done ? '✓' : ''}
                       </button>

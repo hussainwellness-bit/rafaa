@@ -27,7 +27,7 @@ export default function HeroHistory() {
     queryKey: ['hero-history-sessions', profile?.id, year, month],
     queryFn: async () => {
       const { data } = await supabase
-        .from('sessions').select('*, sets:session_sets(*)')
+        .from('sessions_v2').select('*, sets:session_sets(*)')
         .eq('user_id', profile!.id).gte('logged_at', monthStart).lte('logged_at', monthEnd).order('logged_at')
       return (data ?? []) as Session[]
     },
@@ -211,9 +211,9 @@ export default function HeroHistory() {
             return (
               <div className="border-b border-[#1e1e1e]">
                 {/* Session name row */}
-                <div className="px-5 py-3 flex items-center gap-3 border-b border-[#1a1a1a]">
+                <div className="history-session-header border-b border-[#1a1a1a]">
                   {bundle && <div className="w-2 h-2 rounded-full shrink-0" style={{ background: bundle.color }} />}
-                  <p className="text-[#f2f2f2] font-[Syne] font-bold text-[14px]">{selectedSession.bundle_name}</p>
+                  <p className="history-session-name">{selectedSession.bundle_name}</p>
                 </div>
 
                 {exerciseOrder.length === 0 ? (
@@ -222,16 +222,15 @@ export default function HeroHistory() {
                   <div className="px-5 py-3 space-y-4">
                     {exerciseOrder.map(name => (
                       <div key={name}>
-                        <p className="text-[#888] font-[DM_Mono] text-[10px] uppercase tracking-[2px] mb-2">{name}</p>
+                        <p className="ex-history-label">{name}</p>
                         <div className="space-y-1.5">
                           {setsByEx[name]!.map((set, i) => (
-                            <div key={i} className="grid items-center font-[DM_Mono]"
-                              style={{ gridTemplateColumns: '48px 1fr auto', gap: 8 }}>
-                              <span className="text-[#444] text-[11px]">Set {set.set_number}</span>
-                              <span className="text-[#f2f2f2] text-[12px]">
+                            <div key={i} className="history-set-row">
+                              <span className="history-set-num">Set {set.set_number}</span>
+                              <span className="history-set-val">
                                 {set.weight != null ? `${set.weight} kg` : '—'} × {set.reps ?? '—'}
                               </span>
-                              <span className="text-[#c8ff00] text-[11px]">✓</span>
+                              <span className="history-set-done">✓</span>
                             </div>
                           ))}
                         </div>

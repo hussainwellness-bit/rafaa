@@ -70,7 +70,7 @@ export default function CoachLogForHero() {
 
     async function loadGhost() {
       const { data: sessions } = await supabase
-        .from('sessions').select('id, logged_at')
+        .from('sessions_v2').select('id, logged_at')
         .eq('user_id', heroId!).eq('bundle_id', bundleId!)
         .order('logged_at', { ascending: false })
       if (!sessions?.length) return
@@ -118,7 +118,7 @@ export default function CoachLogForHero() {
   const ensureSession = useCallback(async (): Promise<string | null> => {
     if (sessionIdRef.current) return sessionIdRef.current
     if (!heroId || !bundleId || !bundle) return null
-    const { data } = await supabase.from('sessions').insert({
+    const { data } = await supabase.from('sessions_v2').insert({
       user_id: heroId,
       bundle_id: bundleId,
       bundle_name: bundle.name,
@@ -131,7 +131,7 @@ export default function CoachLogForHero() {
   const autoSave = useCallback(async (currentSets: LocalSet[], currentNotes: string) => {
     const sessionId = await ensureSession()
     if (!sessionId) return
-    await supabase.from('sessions')
+    await supabase.from('sessions_v2')
       .update({ notes: currentNotes, updated_at: new Date().toISOString() }).eq('id', sessionId)
     const setsToSave = currentSets.filter(s => s.weight || s.reps || s.done)
     await supabase.from('session_sets').delete().eq('session_id', sessionId)

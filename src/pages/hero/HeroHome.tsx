@@ -93,7 +93,7 @@ export default function HeroHome() {
     queryKey: ['hero-last-sessions', profile?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from('sessions').select('bundle_id, logged_at')
+        .from('sessions_v2').select('bundle_id, logged_at')
         .eq('user_id', profile!.id).order('logged_at', { ascending: false })
       return (data ?? []) as { bundle_id: string; logged_at: string }[]
     },
@@ -113,7 +113,7 @@ export default function HeroHome() {
 
     // Find any workout session today that has done sets
     const { data: todaySessions } = await supabase
-      .from('sessions')
+      .from('sessions_v2')
       .select('id, sets:session_sets(done)')
       .eq('user_id', profile.id)
       .eq('logged_at', TODAY)
@@ -139,17 +139,17 @@ export default function HeroHome() {
 
     if (deleteId) {
       await supabase.from('session_sets').delete().eq('session_id', deleteId)
-      await supabase.from('sessions').delete().eq('id', deleteId)
+      await supabase.from('sessions_v2').delete().eq('id', deleteId)
     }
 
     // Avoid duplicate rest day entries
     const { data: existing } = await supabase
-      .from('sessions').select('id')
+      .from('sessions_v2').select('id')
       .eq('user_id', profile.id).eq('logged_at', TODAY).eq('session_type', 'rest')
       .maybeSingle()
 
     if (!existing) {
-      await supabase.from('sessions').insert({
+      await supabase.from('sessions_v2').insert({
         user_id: profile.id,
         session_type: 'rest',
         bundle_name: 'Rest Day',

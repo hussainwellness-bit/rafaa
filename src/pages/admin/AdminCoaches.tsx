@@ -159,7 +159,7 @@ function EditCoachPanel({ coach, heroCount, open, onClose, onDeleted, showToast 
       if (heroIds.length > 0) {
         // 2. Get all session IDs for these heroes
         const { data: sessions } = await supabase
-          .from('sessions')
+          .from('sessions_v2')
           .select('id')
           .in('user_id', heroIds)
         const sessionIds = (sessions ?? []).map(s => s.id)
@@ -170,7 +170,7 @@ function EditCoachPanel({ coach, heroCount, open, onClose, onDeleted, showToast 
         }
 
         // 4. Delete sessions
-        await supabase.from('sessions').delete().in('user_id', heroIds)
+        await supabase.from('sessions_v2').delete().in('user_id', heroIds)
 
         // 5. Get all bundle IDs for these heroes
         const { data: bundles } = await supabase

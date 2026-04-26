@@ -66,7 +66,7 @@ export default function CoachDashboard() {
       const heroIds = heroes.map(h => h.id)
       if (!heroIds.length) return []
       const { data } = await supabase
-        .from('sessions')
+        .from('sessions_v2')
         .select('id, user_id, bundle_name, logged_at')
         .in('user_id', heroIds)
         .order('logged_at', { ascending: false })

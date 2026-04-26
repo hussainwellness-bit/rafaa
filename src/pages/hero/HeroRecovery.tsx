@@ -57,7 +57,7 @@ export default function HeroRecovery() {
     queryKey: ['hero-month-sessions', profile?.id],
     queryFn: async () => {
       const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
-      const { data } = await supabase.from('sessions').select('logged_at').eq('user_id', profile!.id).gte('logged_at', monthStart)
+      const { data } = await supabase.from('sessions_v2').select('logged_at').eq('user_id', profile!.id).gte('logged_at', monthStart)
       return (data ?? [])
     },
     enabled: !!profile?.id,
@@ -69,7 +69,7 @@ export default function HeroRecovery() {
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)
       // Get session IDs for this week first, then get their sets
       const { data: sessions } = await supabase
-        .from('sessions').select('id')
+        .from('sessions_v2').select('id')
         .eq('user_id', profile!.id).gte('logged_at', weekAgo)
       if (!sessions?.length) return []
       const ids = sessions.map(s => s.id)
