@@ -71,6 +71,7 @@ CREATE POLICY "sessions_v2: coach update for own heroes"
 -- ─── session_sets — fix to join sessions_v2 instead of sessions ───────────────
 DROP POLICY IF EXISTS "session_sets: hero via session" ON session_sets;
 DROP POLICY IF EXISTS "session_sets: coach via hero session" ON session_sets;
+DROP POLICY IF EXISTS "session_sets: coach delete via hero session" ON session_sets;
 
 CREATE POLICY "session_sets: hero via session"
   ON session_sets FOR ALL
