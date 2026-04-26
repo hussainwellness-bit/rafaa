@@ -983,10 +983,19 @@ export default function CoachHeroProfile() {
   const { data: sessions = [] } = useQuery({
     queryKey: ['hero-sessions', heroId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('sessions_v2').select('*, sets:session_sets(*)')
+      const { data: rows } = await supabase
+        .from('sessions_v2').select('*')
         .eq('user_id', heroId).order('logged_at', { ascending: false }).limit(20)
-      return (data ?? []) as Array<{
+      if (!rows?.length) return []
+      const ids = rows.map(r => r.id)
+      const { data: sets } = await supabase
+        .from('session_sets').select('*').in('session_id', ids)
+      const setsBySession: Record<string, typeof sets> = {}
+      for (const s of (sets ?? [])) {
+        if (!setsBySession[s.session_id]) setsBySession[s.session_id] = []
+        setsBySession[s.session_id]!.push(s)
+      }
+      return rows.map(r => ({ ...r, sets: setsBySession[r.id] ?? [] })) as Array<{
         id: string; bundle_name: string; logged_at: string; notes?: string
         sets?: Array<{ exercise_name: string; set_number: number; weight: number; reps: number; done: boolean }>
       }>
