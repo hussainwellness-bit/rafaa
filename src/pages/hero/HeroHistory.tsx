@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import type { Session, JournalLog, Bundle } from '../../types'
 import { calcRecoveryScore, recoveryLabel } from '../../utils/recovery'
 import Card from '../../components/ui/Card'
 import Spinner from '../../components/ui/Spinner'
+import Toast, { useToast } from '../../components/ui/Toast'
 
 function daysInMonth(year: number, month: number) { return new Date(year, month + 1, 0).getDate() }
 function firstDayOfMonth(year: number, month: number) { return new Date(year, month, 1).getDay() }
@@ -15,10 +16,13 @@ const MONTH_NAMES = ['January','February','March','April','May','June','July','A
 // ── Main component ────────────────────────────────────────────────────────────
 export default function HeroHistory() {
   const { profile } = useAuthStore()
+  const qc = useQueryClient()
+  const { toast, showToast } = useToast()
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
   const [selected, setSelected] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`
   const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${String(daysInMonth(year, month)).padStart(2, '0')}`
@@ -60,6 +64,25 @@ export default function HeroHistory() {
       return (data ?? []) as Bundle[]
     },
     enabled: !!profile?.id,
+  })
+
+  const deleteSession = useMutation({
+    mutationFn: async (sessionId: string) => {
+      setDeletingId(sessionId)
+      await supabase.from('session_sets').delete().eq('session_id', sessionId)
+      const { error } = await supabase.from('sessions_v2').delete().eq('id', sessionId)
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      setSelected(null)
+      setDeletingId(null)
+      qc.invalidateQueries({ queryKey: ['hero-history-sessions', profile?.id] })
+      showToast('success', 'Session deleted')
+    },
+    onError: (e: Error) => {
+      setDeletingId(null)
+      showToast('error', 'Failed to delete: ' + e.message)
+    },
   })
 
   const journalByDate: Record<string, JournalLog> = {}
@@ -121,6 +144,7 @@ export default function HeroHistory() {
 
   return (
     <div className="p-5 max-w-lg mx-auto space-y-5">
+      <Toast toast={toast} />
       <div className="pt-4">
         <h1 className="font-[Bebas_Neue] text-4xl text-white tracking-wide">HISTORY</h1>
       </div>
@@ -179,10 +203,20 @@ export default function HeroHistory() {
       {selected && (
         <div className="rounded-[16px] border border-[#1e1e1e] bg-[#111] overflow-hidden">
           {/* Date header */}
-          <div className="px-5 pt-5 pb-4 border-b border-[#1e1e1e]">
+          <div className="px-5 pt-5 pb-4 border-b border-[#1e1e1e] flex items-center justify-between gap-3">
             <h2 className="font-[Bebas_Neue] text-[22px] text-white tracking-[2px] leading-none">
               {new Date(selected + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
             </h2>
+            {selectedSession && (
+              <button
+                onClick={() => deleteSession.mutate(selectedSession.id)}
+                disabled={deletingId === selectedSession.id}
+                className="shrink-0 text-[10px] font-[DM_Mono] font-bold uppercase tracking-[1.5px] px-3 py-1.5 rounded-[100px] border transition-all disabled:opacity-40"
+                style={{ background: 'rgba(255,61,61,0.06)', borderColor: 'rgba(255,61,61,0.25)', color: '#ff6b6b' }}
+              >
+                {deletingId === selectedSession.id ? 'Deleting...' : 'Delete'}
+              </button>
+            )}
           </div>
 
           {!selectedSession && !selectedJournal && (

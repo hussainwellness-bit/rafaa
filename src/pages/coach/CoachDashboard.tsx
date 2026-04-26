@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
@@ -14,9 +15,17 @@ function planMRR(hero: Profile) {
   return MONTHLY_RATES[hero.plan_type ?? ''] ?? 0
 }
 
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
+function daysInMonth(y: number, m: number) { return new Date(y, m + 1, 0).getDate() }
+function firstDayOfMonth(y: number, m: number) { return new Date(y, m, 1).getDay() }
+
 export default function CoachDashboard() {
   const { profile, setProfile } = useAuthStore()
   const qc = useQueryClient()
+  const today = new Date()
+  const [calYear, setCalYear] = useState(today.getFullYear())
+  const [calMonth, setCalMonth] = useState(today.getMonth())
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   const { data: pendingCount = 0 } = useQuery({
     queryKey: ['coach-requests-count', profile?.id],
@@ -60,8 +69,11 @@ export default function CoachDashboard() {
     enabled: !!profile?.id,
   })
 
-  const { data: recentSessions = [] } = useQuery({
-    queryKey: ['coach-recent-sessions', profile?.id, heroes.length],
+  const monthStart = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-01`
+  const monthEnd   = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(daysInMonth(calYear, calMonth)).padStart(2, '0')}`
+
+  const { data: monthSessions = [] } = useQuery({
+    queryKey: ['coach-month-sessions', profile?.id, heroes.length, calYear, calMonth],
     queryFn: async () => {
       const heroIds = heroes.map(h => h.id)
       if (!heroIds.length) return []
@@ -69,8 +81,9 @@ export default function CoachDashboard() {
         .from('sessions_v2')
         .select('id, user_id, bundle_name, logged_at')
         .in('user_id', heroIds)
+        .gte('logged_at', monthStart)
+        .lte('logged_at', monthEnd)
         .order('logged_at', { ascending: false })
-        .limit(10)
       return (data ?? []) as { id: string; user_id: string; bundle_name: string; logged_at: string }[]
     },
     enabled: heroes.length > 0,
@@ -181,37 +194,111 @@ export default function CoachDashboard() {
           </div>
         </Card>
 
-        <Card className="p-6">
-          <h3 className="font-semibold text-white mb-4">Recent Activity</h3>
-          <div className="space-y-3">
-            {(() => {
-              // Deduplicate: one entry per hero+bundle+day
-              const seen = new Set<string>()
-              const deduped = recentSessions.filter(s => {
-                const key = `${s.user_id}:${s.bundle_name}:${s.logged_at}`
-                if (seen.has(key)) return false
-                seen.add(key)
-                return true
-              }).slice(0, 10)
+        <Card className="p-5">
+          {/* Calendar header */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-white">Hero Activity</h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11) } else setCalMonth(m => m - 1); setSelectedDay(null) }}
+                className="w-7 h-7 rounded-[8px] border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition-all text-sm"
+              >←</button>
+              <span className="font-[Bebas_Neue] text-lg text-white tracking-wide">{MONTH_NAMES[calMonth]} {calYear}</span>
+              <button
+                onClick={() => { if (calMonth === 11) { setCalYear(y => y + 1); setCalMonth(0) } else setCalMonth(m => m + 1); setSelectedDay(null) }}
+                disabled={calYear === today.getFullYear() && calMonth === today.getMonth()}
+                className="w-7 h-7 rounded-[8px] border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition-all text-sm disabled:opacity-30"
+              >→</button>
+            </div>
+          </div>
 
-              if (!deduped.length) return (
-                <p className="text-[#444] font-[DM_Mono] text-[12px]">// No activity yet</p>
-              )
+          {/* Day-of-week headers */}
+          <div className="grid grid-cols-7 mb-1">
+            {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+              <div key={d} className="text-center text-[#444] text-[9px] font-[DM_Mono] pb-1">{d}</div>
+            ))}
+          </div>
 
-              return deduped.map(s => {
-                const hero = heroes.find(h => h.id === s.user_id)
-                const dateLabel = new Date(s.logged_at + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                return (
-                  <div key={s.id} className="flex items-center justify-between py-2 border-b border-[#1a1a1a] last:border-0">
-                    <div>
-                      <p className="text-white text-sm">{hero?.full_name ?? '—'}</p>
-                      <p className="text-[#555] text-xs font-[DM_Mono]">{s.bundle_name}</p>
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-0.5">
+            {Array.from({ length: firstDayOfMonth(calYear, calMonth) }).map((_, i) => <div key={`e-${i}`} />)}
+            {Array.from({ length: daysInMonth(calYear, calMonth) }).map((_, i) => {
+              const day = i + 1
+              const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+              const daySessions = monthSessions.filter(s => s.logged_at === dateStr)
+              // Unique heroes who trained this day
+              const heroIds = [...new Set(daySessions.map(s => s.user_id))]
+              const isToday = dateStr === today.toISOString().slice(0, 10)
+              const isSelected = dateStr === selectedDay
+
+              return (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(isSelected ? null : dateStr)}
+                  className={`aspect-square flex flex-col items-center justify-center rounded-[6px] transition-all ${
+                    isSelected ? 'bg-[#c8ff00]/10 border border-[#c8ff00]/40' :
+                    isToday ? 'border border-[#333]' : 'hover:bg-[#1a1a1a]'
+                  }`}
+                >
+                  <span className={`text-[11px] leading-none ${isToday ? 'text-[#c8ff00] font-bold' : 'text-[#666]'}`}>{day}</span>
+                  {heroIds.length > 0 && (
+                    <div className="flex gap-0.5 mt-0.5 flex-wrap justify-center">
+                      {heroIds.slice(0, 3).map(hid => {
+                        const h = heroes.find(x => x.id === hid)
+                        const color = h?.plan_type === 'C' ? '#c8ff00' : h?.plan_type === 'B' ? '#3d9fff' : '#888'
+                        return <div key={hid} className="w-1 h-1 rounded-full" style={{ background: color }} />
+                      })}
+                      {heroIds.length > 3 && <div className="w-1 h-1 rounded-full bg-[#555]" />}
                     </div>
-                    <span className="text-[#444] text-xs font-[DM_Mono]">{dateLabel}</span>
-                  </div>
-                )
-              })
-            })()}
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Selected day detail */}
+          {selectedDay && (() => {
+            const daySessions = monthSessions.filter(s => s.logged_at === selectedDay)
+            const heroIds = [...new Set(daySessions.map(s => s.user_id))]
+            if (!heroIds.length) return (
+              <div className="mt-4 pt-4 border-t border-[#1a1a1a]">
+                <p className="text-[#444] font-[DM_Mono] text-[11px]">// No sessions logged</p>
+              </div>
+            )
+            return (
+              <div className="mt-4 pt-4 border-t border-[#1a1a1a] space-y-2">
+                <p className="text-[#555] font-[DM_Mono] text-[10px] uppercase tracking-[2px]">
+                  {new Date(selectedDay + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                </p>
+                {heroIds.map(hid => {
+                  const hero = heroes.find(h => h.id === hid)
+                  const heroSessions = daySessions.filter(s => s.user_id === hid)
+                  return (
+                    <Link key={hid} to={`/coach/heroes/${hid}`} className="flex items-center justify-between py-2 hover:opacity-80 transition-opacity">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center text-[10px] font-bold text-[#888]">
+                          {hero?.full_name?.charAt(0).toUpperCase() ?? '?'}
+                        </div>
+                        <div>
+                          <p className="text-white text-sm font-medium leading-none">{hero?.full_name ?? 'Unknown'}</p>
+                          <p className="text-[#555] text-[10px] font-[DM_Mono] mt-0.5">
+                            {heroSessions.map(s => s.bundle_name).join(', ')}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[#333] text-[10px] font-[DM_Mono]">→</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            )
+          })()}
+
+          {/* Legend */}
+          <div className="mt-4 pt-3 border-t border-[#1a1a1a] flex items-center gap-4">
+            <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#888]" /><span className="text-[#444] font-[DM_Mono] text-[9px]">Plan A</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#3d9fff]" /><span className="text-[#444] font-[DM_Mono] text-[9px]">Plan B</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#c8ff00]" /><span className="text-[#444] font-[DM_Mono] text-[9px]">Plan C</span></div>
           </div>
         </Card>
       </div>
