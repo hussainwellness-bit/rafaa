@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
@@ -26,7 +26,10 @@ const COL = '28px 1fr 1fr 44px'
 export default function HeroWorkout() {
   const { bundleId } = useParams<{ bundleId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { profile } = useAuthStore()
+  // Accept a date passed via Link state (from HeroHome week selector); fall back to today
+  const logDate: string = (location.state as { date?: string } | null)?.date ?? new Date().toISOString().slice(0, 10)
   const { toast, showToast } = useToast()
   const sessionIdRef = useRef<string | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -117,7 +120,7 @@ export default function HeroWorkout() {
       user_id: profile.id,
       bundle_id: bundleId,
       bundle_name: bundle.name,
-      logged_at: new Date().toISOString().slice(0, 10),
+      logged_at: logDate,
     }).select().single()
     if (error) {
       console.error('[Session] sessions_v2 insert error:', error.message, error.code, error.details)
@@ -214,11 +217,18 @@ export default function HeroWorkout() {
           onClick={() => navigate(-1)}
           className="w-10 h-10 rounded-[10px] border border-[#333] flex items-center justify-center text-[#888] hover:text-white hover:border-[#555] transition-all shrink-0"
         >←</button>
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="w-4 h-4 rounded-full shrink-0" style={{ background: bundle.color }} />
-          <h1 className="font-[Bebas_Neue] text-4xl text-white tracking-wide leading-none truncate">
-            {bundle.name}
-          </h1>
+          <div className="min-w-0">
+            <h1 className="font-[Bebas_Neue] text-4xl text-white tracking-wide leading-none truncate">
+              {bundle.name}
+            </h1>
+            {logDate !== new Date().toISOString().slice(0, 10) && (
+              <p className="text-[#c8ff00] font-[DM_Mono] text-[10px] tracking-[1px] mt-0.5">
+                Logging for {new Date(logDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
