@@ -51,7 +51,11 @@ export default function HeroHistory() {
     queryKey: ['hero-history-journal', profile?.id, year, month],
     queryFn: async () => {
       const { data } = await supabase
-        .from('journal_logs').select('*').eq('user_id', profile!.id).gte('logged_at', monthStart).lte('logged_at', monthEnd)
+        .from('journal_logs').select('*')
+        .eq('user_id', profile!.id)
+        .gte('logged_at', monthStart)
+        .lte('logged_at', monthEnd)
+        .order('created_at', { ascending: false })
       return (data ?? []) as JournalLog[]
     },
     enabled: !!profile?.id,
@@ -85,8 +89,11 @@ export default function HeroHistory() {
     },
   })
 
+  // One entry per date — first wins (query is ordered newest first)
   const journalByDate: Record<string, JournalLog> = {}
-  for (const j of journalLogs) journalByDate[j.logged_at] = j
+  for (const j of journalLogs) {
+    if (!journalByDate[j.logged_at]) journalByDate[j.logged_at] = j
+  }
 
   // Only keep sessions that are meaningful:
   // - rest days always count
