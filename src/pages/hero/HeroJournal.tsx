@@ -4,7 +4,6 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import type { JournalLog, SleepQuality, Mood, Soreness, CardioType } from '../../types'
 import Card from '../../components/ui/Card'
-import Spinner from '../../components/ui/Spinner'
 import WeekStrip, { getWeekDates } from '../../components/ui/WeekStrip'
 
 const TODAY = new Date().toISOString().slice(0, 10)
@@ -155,7 +154,7 @@ export default function HeroJournal() {
   const selectedDObj = new Date(selectedDate + 'T12:00:00')
   const dateLabel = selectedDObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
-  if (isLoading) return <div className="flex items-center justify-center h-screen"><Spinner size={32} className="text-[#c8ff00]" /></div>
+  if (isLoading) return <div className="flex items-center justify-center h-screen"><p className="font-[DM_Mono] text-[#555] text-[13px] tracking-[2px]">LOADING...</p></div>
 
   return (
     <div className="p-5 max-w-lg mx-auto space-y-5">

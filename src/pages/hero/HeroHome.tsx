@@ -4,7 +4,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import type { Bundle, PlanSchedule } from '../../types'
-import Spinner from '../../components/ui/Spinner'
 import Modal from '../../components/ui/Modal'
 import Button from '../../components/ui/Button'
 import WeekStrip, { getWeekDates } from '../../components/ui/WeekStrip'
@@ -219,7 +218,7 @@ export default function HeroHome() {
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-screen">
-      <Spinner size={36} className="text-[#c8ff00]" />
+      <p className="font-[DM_Mono] text-[#555] text-[13px] tracking-[2px]">LOADING...</p>
     </div>
   )
 

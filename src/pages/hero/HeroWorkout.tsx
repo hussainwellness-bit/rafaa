@@ -4,7 +4,6 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import type { Bundle, BundleExercise } from '../../types'
-import Spinner from '../../components/ui/Spinner'
 import Button from '../../components/ui/Button'
 import Toast, { useToast } from '../../components/ui/Toast'
 
@@ -33,6 +32,10 @@ export default function HeroWorkout() {
   const { toast, showToast } = useToast()
   const sessionIdRef = useRef<string | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Draft key includes userId so multiple users on same device don't share drafts.
+  // Uses today's date — draft always represents an in-progress workout for today.
+  const today = new Date().toISOString().slice(0, 10)
+  const draftKey = profile?.id && bundleId ? `draft_${profile.id}_${bundleId}_${today}` : null
   const [sets, setSets] = useState<LocalSet[]>([])
   const [notes, setNotes] = useState('')
   const [saved, setSaved] = useState(false)
@@ -94,7 +97,7 @@ export default function HeroWorkout() {
     loadGhost()
   }, [bundleExercises, profile, bundleId])
 
-  // Initialize sets from bundle
+  // Initialize sets from bundle — restore draft from localStorage if available
   useEffect(() => {
     if (!bundleExercises.length) return
     const initial: LocalSet[] = []
@@ -103,8 +106,25 @@ export default function HeroWorkout() {
         initial.push({ exercise_id: be.exercise_id, exercise_name: be.exercise?.name ?? '', set_number: i, weight: '', reps: '', done: false })
       }
     }
+
+    if (draftKey) {
+      try {
+        const raw = localStorage.getItem(draftKey)
+        if (raw) {
+          const draft = JSON.parse(raw) as { sets: LocalSet[]; notes: string }
+          const merged = initial.map(s => {
+            const saved = draft.sets.find(d => d.exercise_id === s.exercise_id && d.set_number === s.set_number)
+            return saved ? { ...s, weight: saved.weight, reps: saved.reps, done: saved.done } : s
+          })
+          setSets(merged)
+          setNotes(draft.notes ?? '')
+          return
+        }
+      } catch { /* ignore corrupt draft */ }
+    }
+
     setSets(initial)
-  }, [bundleExercises])
+  }, [bundleExercises]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Lazy session creation ─────────────────────────────────────────────────
   // Session is only created when hero explicitly finishes OR marks first set done.
@@ -159,18 +179,18 @@ export default function HeroWorkout() {
     }
   }, [ensureSession])
 
-  const scheduleAutoSave = useCallback((newSets: LocalSet[], newNotes: string) => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(() => autoSave(newSets, newNotes), 3000)
-  }, [autoSave])
+  const saveDraft = useCallback((currentSets: LocalSet[], currentNotes: string) => {
+    if (!draftKey) return
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({ sets: currentSets, notes: currentNotes }))
+    } catch { /* storage full — ignore */ }
+  }, [draftKey])
 
   const updateSet = (idx: number, field: 'weight' | 'reps' | 'done', value: string | boolean) => {
     setSets(prev => {
       const next = [...prev]
       next[idx] = { ...next[idx], [field]: value }
-      // Only schedule auto-save if there's meaningful data (at least one done or filled set)
-      const hasData = next.some(s => s.done || s.weight || s.reps)
-      if (hasData) scheduleAutoSave(next, notes)
+      saveDraft(next, notes)
       return next
     })
   }
@@ -181,6 +201,7 @@ export default function HeroWorkout() {
       await autoSave(sets, notes)
     },
     onSuccess: () => {
+      if (draftKey) localStorage.removeItem(draftKey)
       setSaved(true)
       showToast('success', 'Session saved ✓')
       setTimeout(() => navigate('/hero'), 1200)
@@ -198,7 +219,7 @@ export default function HeroWorkout() {
 
   if (isLoading || !bundle) return (
     <div className="flex items-center justify-center h-screen">
-      <Spinner size={32} className="text-[#c8ff00]" />
+      <p className="font-[DM_Mono] text-[#555] text-[13px] tracking-[2px]">LOADING...</p>
     </div>
   )
 
@@ -320,8 +341,7 @@ export default function HeroWorkout() {
           value={notes}
           onChange={e => {
             setNotes(e.target.value)
-            const hasData = sets.some(s => s.done || s.weight || s.reps)
-            if (hasData) scheduleAutoSave(sets, e.target.value)
+            saveDraft(sets, e.target.value)
           }}
           placeholder="How did it feel? Any PRs?"
           className="w-full px-5 py-4 bg-[#111] border border-[#222] rounded-[14px] text-white placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00] resize-none"

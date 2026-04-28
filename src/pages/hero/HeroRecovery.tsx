@@ -4,7 +4,6 @@ import { useAuthStore } from '../../stores/authStore'
 import type { JournalLog } from '../../types'
 import { calcRecoveryScore, recoveryLabel } from '../../utils/recovery'
 import Card from '../../components/ui/Card'
-import Spinner from '../../components/ui/Spinner'
 
 const TODAY = new Date().toISOString().slice(0, 10)
 const YESTERDAY = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
@@ -87,7 +86,7 @@ export default function HeroRecovery() {
     enabled: !!profile?.id,
   })
 
-  if (loadingToday) return <div className="flex items-center justify-center h-screen"><Spinner size={32} className="text-[#c8ff00]" /></div>
+  if (loadingToday) return <div className="flex items-center justify-center h-screen"><p className="font-[DM_Mono] text-[#555] text-[13px] tracking-[2px]">LOADING...</p></div>
 
   const score = recoveryLog ? calcRecoveryScore(recoveryLog) : 0
   const { label, color, dot } = recoveryLabel(score)

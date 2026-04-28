@@ -5,7 +5,6 @@ import { useAuthStore } from '../../stores/authStore'
 import type { Session, JournalLog, Bundle } from '../../types'
 import { calcRecoveryScore, recoveryLabel } from '../../utils/recovery'
 import Card from '../../components/ui/Card'
-import Spinner from '../../components/ui/Spinner'
 import Toast, { useToast } from '../../components/ui/Toast'
 
 function daysInMonth(year: number, month: number) { return new Date(year, month + 1, 0).getDate() }
@@ -145,7 +144,7 @@ export default function HeroHistory() {
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-screen">
-      <Spinner size={32} className="text-[#c8ff00]" />
+      <p className="font-[DM_Mono] text-[#555] text-[13px] tracking-[2px]">LOADING...</p>
     </div>
   )
 
