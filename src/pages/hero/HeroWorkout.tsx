@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
@@ -16,35 +16,48 @@ interface LocalSet {
   done: boolean
 }
 
-interface GhostData {
-  [exerciseId: string]: { weight?: number; reps?: number }
+interface LastSet {
+  set_number: number
+  weight: number | null
+  reps: number | null
 }
+
+// exerciseId → ordered array of last session sets
+type LastSessionData = Record<string, LastSet[]>
 
 const COL = '28px 1fr 1fr 44px'
 
-export default function HeroWorkout() {
-  const { bundleId } = useParams<{ bundleId: string }>()
+// bundleId is passed as prop by HeroLayout (derived via matchPath — no Route/useParams needed)
+export default function HeroWorkout({ bundleId }: { bundleId: string | null }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { profile } = useAuthStore()
-  // Accept a date passed via Link state (from HeroHome week selector); fall back to today
-  const logDate: string = (location.state as { date?: string } | null)?.date ?? new Date().toISOString().slice(0, 10)
+  const logDate: string =
+    (location.state as { date?: string } | null)?.date ?? new Date().toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0, 10)
   const { toast, showToast } = useToast()
+
   const sessionIdRef = useRef<string | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Draft key includes userId so multiple users on same device don't share drafts.
-  // Uses today's date — draft always represents an in-progress workout for today.
-  const today = new Date().toISOString().slice(0, 10)
+
+  // Draft key: per-user, per-bundle, per-day
   const draftKey = profile?.id && bundleId ? `draft_${profile.id}_${bundleId}_${today}` : null
+
   const [sets, setSets] = useState<LocalSet[]>([])
   const [notes, setNotes] = useState('')
   const [saved, setSaved] = useState(false)
-  const [ghostData, setGhostData] = useState<GhostData>({})
+  const [lastSessionData, setLastSessionData] = useState<LastSessionData>({})
+
+  // Reset session state when bundleId changes (navigating to different bundle)
+  useEffect(() => {
+    sessionIdRef.current = null
+    setSaved(false)
+  }, [bundleId])
 
   const { data: bundle } = useQuery({
     queryKey: ['bundle', bundleId],
     queryFn: async () => {
-      const { data } = await supabase.from('bundles').select('*').eq('id', bundleId).single()
+      const { data } = await supabase.from('bundles').select('*').eq('id', bundleId!).single()
       return data as Bundle
     },
     enabled: !!bundleId,
@@ -55,55 +68,51 @@ export default function HeroWorkout() {
     queryFn: async () => {
       const { data } = await supabase
         .from('bundle_exercises').select('*, exercise:exercises(*)')
-        .eq('bundle_id', bundleId).order('sort_order')
+        .eq('bundle_id', bundleId!).order('sort_order')
       return (data ?? []) as BundleExercise[]
     },
     enabled: !!bundleId,
   })
 
-  // Load ghost data
+  // ── Load ALL sets from last session for this bundle (per exercise) ──────────
   useEffect(() => {
-    if (!profile?.id || !bundleExercises.length) return
-    const ghostPref = profile.ghost_preference ?? 'last'
+    if (!profile?.id || !bundleExercises.length || !bundleId) return
     const exerciseIds = bundleExercises.map(be => be.exercise_id)
 
-    async function loadGhost() {
+    async function loadLastSession() {
       const { data: sessions } = await supabase
-        .from('sessions_v2').select('id, logged_at')
+        .from('sessions_v2').select('id')
         .eq('user_id', profile!.id).eq('bundle_id', bundleId!)
-        .order('logged_at', { ascending: false })
+        .order('logged_at', { ascending: false }).limit(1)
       if (!sessions?.length) return
 
-      const ghosts: GhostData = {}
-      if (ghostPref === 'last') {
-        const { data: lastSets } = await supabase
-          .from('session_sets').select('exercise_id, weight, reps')
-          .eq('session_id', sessions[0].id).in('exercise_id', exerciseIds)
-        for (const s of (lastSets ?? []) as { exercise_id: string; weight: number; reps: number }[]) {
-          if (!ghosts[s.exercise_id] || (s.weight ?? 0) > (ghosts[s.exercise_id].weight ?? 0))
-            ghosts[s.exercise_id] = { weight: s.weight, reps: s.reps }
-        }
-      } else {
-        const { data: allSets } = await supabase
-          .from('session_sets').select('exercise_id, weight, reps')
-          .in('session_id', sessions.map(s => s.id)).in('exercise_id', exerciseIds)
-        for (const s of (allSets ?? []) as { exercise_id: string; weight: number; reps: number }[]) {
-          if (!ghosts[s.exercise_id] || (s.weight ?? 0) > (ghosts[s.exercise_id].weight ?? 0))
-            ghosts[s.exercise_id] = { weight: s.weight, reps: s.reps }
-        }
+      const { data: rawSets } = await supabase
+        .from('session_sets').select('exercise_id, set_number, weight, reps')
+        .eq('session_id', sessions[0].id)
+        .in('exercise_id', exerciseIds)
+        .order('set_number', { ascending: true })
+
+      const grouped: LastSessionData = {}
+      for (const s of (rawSets ?? []) as (LastSet & { exercise_id: string })[]) {
+        if (!grouped[s.exercise_id]) grouped[s.exercise_id] = []
+        grouped[s.exercise_id].push({ set_number: s.set_number, weight: s.weight, reps: s.reps })
       }
-      setGhostData(ghosts)
+      setLastSessionData(grouped)
     }
-    loadGhost()
+    loadLastSession()
   }, [bundleExercises, profile, bundleId])
 
-  // Initialize sets from bundle — restore draft from localStorage if available
+  // ── Initialize sets — restore draft from localStorage if available ──────────
   useEffect(() => {
     if (!bundleExercises.length) return
     const initial: LocalSet[] = []
     for (const be of bundleExercises) {
       for (let i = 1; i <= be.sets; i++) {
-        initial.push({ exercise_id: be.exercise_id, exercise_name: be.exercise?.name ?? '', set_number: i, weight: '', reps: '', done: false })
+        initial.push({
+          exercise_id: be.exercise_id,
+          exercise_name: be.exercise?.name ?? '',
+          set_number: i, weight: '', reps: '', done: false,
+        })
       }
     }
 
@@ -113,57 +122,41 @@ export default function HeroWorkout() {
         if (raw) {
           const draft = JSON.parse(raw) as { sets: LocalSet[]; notes: string }
           const merged = initial.map(s => {
-            const saved = draft.sets.find(d => d.exercise_id === s.exercise_id && d.set_number === s.set_number)
-            return saved ? { ...s, weight: saved.weight, reps: saved.reps, done: saved.done } : s
+            const d = draft.sets.find(x => x.exercise_id === s.exercise_id && x.set_number === s.set_number)
+            return d ? { ...s, weight: d.weight, reps: d.reps, done: d.done } : s
           })
           setSets(merged)
           setNotes(draft.notes ?? '')
           return
         }
-      } catch { /* ignore corrupt draft */ }
+      } catch { /* corrupt draft — ignore */ }
     }
 
     setSets(initial)
+    setNotes('')
   }, [bundleExercises]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Lazy session creation ─────────────────────────────────────────────────
-  // Session is only created when hero explicitly finishes OR marks first set done.
-  // Opening a bundle NEVER creates a DB record.
+  // ── Session DB ops ──────────────────────────────────────────────────────────
   const ensureSession = useCallback(async (): Promise<string | null> => {
     if (sessionIdRef.current) return sessionIdRef.current
-    if (!profile?.id || !bundleId || !bundle) {
-      console.error('[Session] ensureSession: missing profile/bundleId/bundle', { profileId: profile?.id, bundleId, bundleName: bundle?.name })
-      return null
-    }
-    console.log('[Session] Creating session_v2 for user:', profile.id, 'bundle:', bundleId)
+    if (!profile?.id || !bundleId || !bundle) return null
     const { data, error } = await supabase.from('sessions_v2').insert({
-      user_id: profile.id,
-      bundle_id: bundleId,
-      bundle_name: bundle.name,
-      logged_at: logDate,
+      user_id: profile.id, bundle_id: bundleId, bundle_name: bundle.name, logged_at: logDate,
     }).select().single()
-    if (error) {
-      console.error('[Session] sessions_v2 insert error:', error.message, error.code, error.details)
-      throw new Error('Could not create session: ' + error.message)
-    }
-    console.log('[Session] Created session_v2:', data)
+    if (error) throw new Error('Could not create session: ' + error.message)
     if (data) sessionIdRef.current = (data as { id: string }).id
     return sessionIdRef.current
-  }, [profile, bundleId, bundle])
+  }, [profile, bundleId, bundle, logDate])
 
   const autoSave = useCallback(async (currentSets: LocalSet[], currentNotes: string) => {
     const sessionId = await ensureSession()
     if (!sessionId) return
-    const { error: updErr } = await supabase.from('sessions_v2')
+    await supabase.from('sessions_v2')
       .update({ notes: currentNotes, updated_at: new Date().toISOString() }).eq('id', sessionId)
-    if (updErr) console.error('[Session] sessions_v2 update error:', updErr.message)
-
     const setsToSave = currentSets.filter(s => s.weight || s.reps || s.done)
-    const { error: delErr } = await supabase.from('session_sets').delete().eq('session_id', sessionId)
-    if (delErr) console.error('[Session] session_sets delete error:', delErr.message)
-
+    await supabase.from('session_sets').delete().eq('session_id', sessionId)
     if (setsToSave.length) {
-      const { error: insErr } = await supabase.from('session_sets').insert(
+      await supabase.from('session_sets').insert(
         setsToSave.map(s => ({
           session_id: sessionId,
           exercise_id: s.exercise_id,
@@ -174,16 +167,14 @@ export default function HeroWorkout() {
           done: s.done,
         }))
       )
-      if (insErr) console.error('[Session] session_sets insert error:', insErr.message, insErr.code, insErr.details)
-      else console.log('[Session] Saved', setsToSave.length, 'sets for session', sessionId)
     }
   }, [ensureSession])
 
+  // ── Draft persistence ───────────────────────────────────────────────────────
   const saveDraft = useCallback((currentSets: LocalSet[], currentNotes: string) => {
     if (!draftKey) return
-    try {
-      localStorage.setItem(draftKey, JSON.stringify({ sets: currentSets, notes: currentNotes }))
-    } catch { /* storage full — ignore */ }
+    try { localStorage.setItem(draftKey, JSON.stringify({ sets: currentSets, notes: currentNotes })) }
+    catch { /* storage full */ }
   }, [draftKey])
 
   const updateSet = (idx: number, field: 'weight' | 'reps' | 'done', value: string | boolean) => {
@@ -206,16 +197,12 @@ export default function HeroWorkout() {
       showToast('success', 'Session saved ✓')
       setTimeout(() => navigate('/hero'), 1200)
     },
-    onError: (e: Error) => {
-      showToast('error', 'Failed to save session: ' + e.message)
-    },
+    onError: (e: Error) => showToast('error', 'Failed to save: ' + e.message),
   })
 
-  function getInputColor(set: LocalSet) {
-    const ghost = ghostData[set.exercise_id]
-    if (!ghost || !set.weight || !ghost.weight) return null
-    return parseFloat(set.weight) > ghost.weight ? 'green' : null
-  }
+  // ── Render ──────────────────────────────────────────────────────────────────
+  // When hidden (bundleId null), render nothing — display:none is applied by parent
+  if (!bundleId) return null
 
   if (isLoading || !bundle) return (
     <div className="flex items-center justify-center h-screen">
@@ -235,7 +222,7 @@ export default function HeroWorkout() {
       {/* Header */}
       <div className="px-5 pt-6 pb-4 flex items-center gap-4">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/hero')}
           className="w-10 h-10 rounded-[10px] border border-[#333] flex items-center justify-center text-[#888] hover:text-white hover:border-[#555] transition-all shrink-0"
         >←</button>
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -244,7 +231,7 @@ export default function HeroWorkout() {
             <h1 className="font-[Bebas_Neue] text-4xl text-white tracking-wide leading-none truncate">
               {bundle.name}
             </h1>
-            {logDate !== new Date().toISOString().slice(0, 10) && (
+            {logDate !== today && (
               <p className="text-[#c8ff00] font-[DM_Mono] text-[10px] tracking-[1px] mt-0.5">
                 Logging for {new Date(logDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </p>
@@ -256,11 +243,12 @@ export default function HeroWorkout() {
       {/* Exercise cards */}
       <div className="px-5 space-y-4 mt-2">
         {exerciseGroups.map(({ be, sets: exSets }) => {
-          const ghost = ghostData[be.exercise_id]
+          const lastSets = lastSessionData[be.exercise_id] ?? []
+
           return (
             <div key={be.id} className="ex-card">
-              {/* Exercise name */}
-              <div className="flex items-start justify-between gap-3 mb-2">
+              {/* Exercise name + video */}
+              <div className="flex items-start justify-between gap-3 mb-3">
                 <p className="ex-card-name">{be.exercise?.name}</p>
                 {be.exercise?.video_url && (
                   <a
@@ -272,13 +260,16 @@ export default function HeroWorkout() {
                 )}
               </div>
 
-              {/* Ghost line */}
-              {ghost?.weight ? (
-                <p className="ex-ghost">
-                  Ghost: {ghost.weight} kg × {ghost.reps} &nbsp;·&nbsp; {profile?.ghost_preference === 'best' ? 'PB' : 'Last'}
-                </p>
-              ) : (
-                <div className="mb-4" />
+              {/* LAST session — all sets as badges */}
+              {lastSets.length > 0 && (
+                <div className="last-ref">
+                  <span className="last-ref-label">LAST:</span>
+                  {lastSets.map(s => (
+                    <span className="lset" key={s.set_number}>
+                      S{s.set_number} {s.weight ?? '—'}kg×{s.reps ?? '—'}
+                    </span>
+                  ))}
+                </div>
               )}
 
               {/* Column headers */}
@@ -293,28 +284,35 @@ export default function HeroWorkout() {
               <div className="space-y-2">
                 {exSets.map((set, i) => {
                   const globalIdx = sets.indexOf(set)
-                  const color = getInputColor(set)
+                  const lastSet = lastSets[i] // same index = same set number
+                  const cw = parseFloat(set.weight) || 0
+                  const cr = parseInt(set.reps)    || 0
+                  const lw = lastSet?.weight ?? 0
+                  const lr = lastSet?.reps   ?? 0
+                  // Green only when genuinely beating the previous session
+                  const weightPR = !!set.weight && lw > 0 && cw > lw
+                  const repsPR   = !!set.reps   && lr > 0 && cr > lr && cw >= lw
 
                   return (
                     <div key={i} className={`set-row${set.done ? ' done' : ''}`}>
                       <span className="set-num">{set.set_number}</span>
 
-                      {/* KG */}
+                      {/* KG — pr > filled > empty */}
                       <input
                         type="number" min={0} step={0.5}
-                        placeholder={ghost?.weight ? String(ghost.weight) : '—'}
+                        placeholder={lw ? String(lw) : '—'}
                         value={set.weight}
                         onChange={e => updateSet(globalIdx, 'weight', e.target.value)}
-                        className={`set-input${color === 'green' ? ' pr' : set.weight ? ' has-value' : ''}`}
+                        className={`set-input${weightPR ? ' pr' : set.weight ? ' filled' : ''}`}
                       />
 
-                      {/* REPS */}
+                      {/* REPS — pr > filled > empty */}
                       <input
                         type="number" min={0}
-                        placeholder={ghost?.reps ? String(ghost.reps) : '—'}
+                        placeholder={lr ? String(lr) : '—'}
                         value={set.reps}
                         onChange={e => updateSet(globalIdx, 'reps', e.target.value)}
-                        className={`set-input${set.reps ? ' has-value' : ''}`}
+                        className={`set-input${repsPR ? ' pr' : set.reps ? ' filled' : ''}`}
                       />
 
                       {/* Done */}
@@ -339,10 +337,7 @@ export default function HeroWorkout() {
         <textarea
           rows={3}
           value={notes}
-          onChange={e => {
-            setNotes(e.target.value)
-            saveDraft(sets, e.target.value)
-          }}
+          onChange={e => { setNotes(e.target.value); saveDraft(sets, e.target.value) }}
           placeholder="How did it feel? Any PRs?"
           className="w-full px-5 py-4 bg-[#111] border border-[#222] rounded-[14px] text-white placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00] resize-none"
           style={{ fontSize: 15 }}

@@ -37,6 +37,34 @@
   --radius-pill:100px;
 }
 
+/* ── Last Session Reference Row ─────────────────────────────────────────── */
+.last-ref {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.last-ref-label {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.lset {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: rgba(200, 255, 0, 0.06);
+  border: 1px solid rgba(200, 255, 0, 0.15);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+
 /* ── Exercise Card ───────────────────────────────────────────────────────── */
 .ex-card {
   background: var(--surface);
@@ -107,9 +135,18 @@
   color: var(--text-primary);
 }
 
+/* Filled: hero typed a value — accent highlight */
+.set-input.filled {
+  border-color: rgba(200, 255, 0, 0.25);
+  color: var(--accent);
+  background: rgba(200, 255, 0, 0.04);
+}
+
+/* PR: beat the previous session — green highlight */
 .set-input.pr {
-  border-color: var(--green);
-  color: var(--green);
+  border-color: #00ff88;
+  color: #00ff88;
+  background: rgba(0, 255, 136, 0.04);
 }
 
 /* ── Set Check ───────────────────────────────────────────────────────────── */

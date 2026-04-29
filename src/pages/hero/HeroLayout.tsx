@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { useLocation, matchPath } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import HeroHome from './HeroHome'
 import HeroJournal from './HeroJournal'
@@ -9,69 +9,47 @@ import HeroSettings from './HeroSettings'
 import HeroWorkout from './HeroWorkout'
 import HeroBottomNav from '../../components/hero/HeroBottomNav'
 
-// Keep all tab pages permanently mounted — only toggle CSS display.
-// This prevents unmount/remount flicker (black screen) when switching tabs,
-// and preserves in-memory state (queries, scroll position, etc.).
+// All pages stay permanently mounted — only CSS display toggles.
+// No <Routes> inside here: using matchPath instead of Route/useParams to
+// derive the active tab/bundleId. This eliminates any React Router
+// reconciliation flicker (black screen) on tab switches.
 export default function HeroLayout() {
   const { profile } = useAuthStore()
   const { pathname } = useLocation()
   const planB = profile?.plan_type === 'B' || profile?.plan_type === 'C'
   const planC = profile?.plan_type === 'C'
 
-  const isWorkoutDetail = pathname.startsWith('/hero/workout/')
+  // Derive bundleId without a Route context
+  const workoutMatch = matchPath('/hero/workout/:bundleId', pathname)
+  const currentBundleId = workoutMatch?.params?.bundleId ?? null
 
-  // Determine which main tab is active
   const tab =
-    isWorkoutDetail                          ? 'workout' :
-    pathname === '/hero' || pathname === '/hero/' ? 'home'    :
-    pathname.startsWith('/hero/journal')     ? 'journal'  :
-    pathname.startsWith('/hero/recovery')    ? 'recovery' :
-    pathname.startsWith('/hero/nutrition')   ? 'nutrition':
-    pathname.startsWith('/hero/history')     ? 'history'  :
-    pathname.startsWith('/hero/settings')    ? 'settings' : 'home'
+    currentBundleId                              ? 'workout'   :
+    pathname === '/hero' || pathname === '/hero/' ? 'home'      :
+    pathname.startsWith('/hero/journal')          ? 'journal'   :
+    pathname.startsWith('/hero/recovery')         ? 'recovery'  :
+    pathname.startsWith('/hero/nutrition')        ? 'nutrition' :
+    pathname.startsWith('/hero/history')          ? 'history'   :
+    pathname.startsWith('/hero/settings')         ? 'settings'  : 'home'
 
-  function show(name: string) {
-    return { display: tab === name && !isWorkoutDetail ? 'block' : 'none' } as const
-  }
+  const vis = (name: string): React.CSSProperties =>
+    ({ display: tab === name ? 'block' : 'none' })
 
   return (
     <div className="min-h-screen bg-[#080808] pb-24">
+      <div style={vis('home')}>    <HeroHome />    </div>
 
-      {/* ── Main tabs — always mounted, hidden with display:none ── */}
-      <div style={show('home')}>
-        <HeroHome />
+      {planB && <div style={vis('journal')}>  <HeroJournal />  </div>}
+      {planC && <div style={vis('recovery')}> <HeroRecovery /> </div>}
+      {planC && <div style={vis('nutrition')}><HeroNutrition /></div>}
+
+      <div style={vis('history')}>  <HeroHistory />  </div>
+      <div style={vis('settings')}> <HeroSettings /> </div>
+
+      {/* Workout detail — always mounted, bundleId prop drives queries */}
+      <div style={vis('workout')}>
+        <HeroWorkout bundleId={currentBundleId} />
       </div>
-
-      {planB && (
-        <div style={show('journal')}>
-          <HeroJournal />
-        </div>
-      )}
-
-      {planC && (
-        <div style={show('recovery')}>
-          <HeroRecovery />
-        </div>
-      )}
-
-      {planC && (
-        <div style={show('nutrition')}>
-          <HeroNutrition />
-        </div>
-      )}
-
-      <div style={show('history')}>
-        <HeroHistory />
-      </div>
-
-      <div style={show('settings')}>
-        <HeroSettings />
-      </div>
-
-      {/* ── Workout detail — route-based (needs dynamic :bundleId param) ── */}
-      <Routes>
-        <Route path="workout/:bundleId" element={<HeroWorkout />} />
-      </Routes>
 
       <HeroBottomNav />
     </div>
