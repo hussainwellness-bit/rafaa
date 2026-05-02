@@ -1,9 +1,9 @@
+import type React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import type { JournalLog } from '../../types'
 import { calcRecoveryScore, recoveryLabel } from '../../utils/recovery'
-import Card from '../../components/ui/Card'
 
 const TODAY = new Date().toISOString().slice(0, 10)
 const YESTERDAY = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
@@ -14,17 +14,17 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
   const dash = (score / 100) * circ
 
   return (
-    <div className="relative w-36 h-36 flex items-center justify-center">
-      <svg width="144" height="144" className="-rotate-90">
-        <circle cx="72" cy="72" r={r} stroke="#1a1a1a" strokeWidth="10" fill="none" />
+    <div style={{ position: 'relative', width: 144, height: 144, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <svg width="144" height="144" style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx="72" cy="72" r={r} stroke="var(--lift2)" strokeWidth="10" fill="none" />
         <circle cx="72" cy="72" r={r} stroke={color} strokeWidth="10" fill="none"
           strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
           style={{ transition: 'stroke-dasharray 0.8s ease' }}
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-[Bebas_Neue] text-5xl text-white leading-none">{score}</span>
-        <span className="text-[#555] text-xs">/100</span>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 48, color: 'var(--text)', lineHeight: 1 }}>{score}</span>
+        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)' }}>/100</span>
       </div>
     </div>
   )
@@ -86,7 +86,11 @@ export default function HeroRecovery() {
     enabled: !!profile?.id,
   })
 
-  if (loadingToday) return <div className="flex items-center justify-center h-screen"><p className="font-[DM_Mono] text-[#555] text-[13px] tracking-[2px]">LOADING...</p></div>
+  if (loadingToday) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+      <p style={{ fontFamily: 'DM Mono, monospace', color: 'var(--text3)', fontSize: 13, letterSpacing: 2 }}>LOADING...</p>
+    </div>
+  )
 
   const score = recoveryLog ? calcRecoveryScore(recoveryLog) : 0
   const { label, color, dot } = recoveryLabel(score)
@@ -102,7 +106,6 @@ export default function HeroRecovery() {
     ? bodyWeights[bodyWeights.length - 1] > bodyWeights[0] ? '↑' : bodyWeights[bodyWeights.length - 1] < bodyWeights[0] ? '↓' : '→'
     : '→'
 
-  // Streak: consecutive days with any log
   const logDates = new Set(weekLogs.map(l => l.logged_at))
   let streak = 0
   for (let i = 0; i < 30; i++) {
@@ -120,65 +123,47 @@ export default function HeroRecovery() {
     : 0
   const trainingLoad = Math.round(totalSets * avgWeightWeek)
 
+  const statCard = (label: string, value: React.ReactNode) => (
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px' }}>
+      <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 6 }}>{label}</p>
+      <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 28 }}>{value}</div>
+    </div>
+  )
+
   return (
-    <div className="p-5 max-w-lg mx-auto space-y-6">
-      <div className="pt-4">
-        <h1 className="font-[Bebas_Neue] text-4xl text-white tracking-wide">RECOVERY</h1>
-        <p className="text-[#555] text-sm">
+    <div className="wrap" style={{ paddingTop: 24 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 48, letterSpacing: 4, lineHeight: 1, color: 'var(--text)', margin: 0 }}>
+          RECOVERY
+        </h1>
+        <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text3)', marginTop: 4 }}>
           {recoveryDateLabel ? `${recoveryDateLabel}'s readiness` : 'Your readiness'}
-          {recoveryLog?.logged_at === YESTERDAY && !todayLog?.sleep_hours && (
-            <span className="text-[#444]"> — log this morning to update</span>
-          )}
+          {recoveryLog?.logged_at === YESTERDAY && !todayLog?.sleep_hours && ' — log this morning to update'}
         </p>
       </div>
 
       {!recoveryLog ? (
-        <Card className="p-8 text-center space-y-2">
-          <p className="text-[#555]">Log your morning check-in to see your recovery score.</p>
-        </Card>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 20px', textAlign: 'center' }}>
+          <p style={{ fontFamily: 'DM Mono, monospace', color: 'var(--text3)', fontSize: 11 }}>Log your morning check-in to see your recovery score.</p>
+        </div>
       ) : (
-        <Card className="p-6 flex flex-col items-center gap-4" style={{ borderColor: color + '30' }}>
+        <div style={{ background: 'var(--card)', border: `1px solid ${color}30`, borderRadius: 16, padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           <ScoreRing score={score} color={color} />
-          <div className="text-center">
-            <p className="text-2xl mb-1">{dot}</p>
-            <p className="text-white font-semibold" style={{ color }}>{label}</p>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: 24, marginBottom: 4 }}>{dot}</p>
+            <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, fontWeight: 700, color }}>{label}</p>
           </div>
-        </Card>
+        </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="p-4">
-          <p className="text-[#555] text-xs uppercase tracking-wider mb-1">Avg Sleep (7d)</p>
-          <p className="font-[Bebas_Neue] text-3xl text-white">{avgSleep.toFixed(1)}<span className="text-lg text-[#555]">h</span></p>
-        </Card>
-
-        <Card className="p-4">
-          <p className="text-[#555] text-xs uppercase tracking-wider mb-1">Avg Weight (7d)</p>
-          <p className="font-[Bebas_Neue] text-3xl text-white">
-            {avgWeight ? `${avgWeight.toFixed(1)}` : '—'}
-            <span className="text-lg text-[#555]"> {avgWeight ? 'kg' : ''} {weightTrend}</span>
-          </p>
-        </Card>
-
-        <Card className="p-4">
-          <p className="text-[#555] text-xs uppercase tracking-wider mb-1">Hydration Today</p>
-          <p className="font-[Bebas_Neue] text-3xl text-[#3d9fff]">{recoveryLog?.water_glasses ?? 0}<span className="text-lg text-[#555]">/8</span></p>
-        </Card>
-
-        <Card className="p-4">
-          <p className="text-[#555] text-xs uppercase tracking-wider mb-1">Current Streak</p>
-          <p className="font-[Bebas_Neue] text-3xl text-[#c8ff00]">{streak}<span className="text-lg text-[#555]"> days</span></p>
-        </Card>
-
-        <Card className="p-4">
-          <p className="text-[#555] text-xs uppercase tracking-wider mb-1">Consistency (month)</p>
-          <p className="font-[Bebas_Neue] text-3xl text-white">{consistency}<span className="text-lg text-[#555]">%</span></p>
-        </Card>
-
-        <Card className="p-4">
-          <p className="text-[#555] text-xs uppercase tracking-wider mb-1">Training Load (7d)</p>
-          <p className="font-[Bebas_Neue] text-3xl text-[#a855f7]">{trainingLoad > 0 ? trainingLoad.toLocaleString() : '—'}</p>
-        </Card>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
+        {statCard('Avg Sleep (7d)', <><span style={{ color: 'var(--text)' }}>{avgSleep.toFixed(1)}</span><span style={{ fontSize: 16, color: 'var(--text3)' }}>h</span></>)}
+        {statCard('Avg Weight (7d)', <><span style={{ color: 'var(--text)' }}>{avgWeight ? avgWeight.toFixed(1) : '—'}</span><span style={{ fontSize: 16, color: 'var(--text3)' }}>{avgWeight ? ` kg ${weightTrend}` : ''}</span></>)}
+        {statCard('Hydration Today', <><span style={{ color: 'var(--blue)' }}>{recoveryLog?.water_glasses ?? 0}</span><span style={{ fontSize: 16, color: 'var(--text3)' }}>/8</span></>)}
+        {statCard('Current Streak', <><span style={{ color: 'var(--accent)' }}>{streak}</span><span style={{ fontSize: 16, color: 'var(--text3)' }}> days</span></>)}
+        {statCard('Consistency (month)', <><span style={{ color: 'var(--text)' }}>{consistency}</span><span style={{ fontSize: 16, color: 'var(--text3)' }}>%</span></>)}
+        {statCard('Training Load (7d)', <span style={{ color: '#a855f7' }}>{trainingLoad > 0 ? trainingLoad.toLocaleString() : '—'}</span>)}
       </div>
     </div>
   )

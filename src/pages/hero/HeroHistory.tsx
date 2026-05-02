@@ -4,7 +4,6 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import type { Session, JournalLog, Bundle } from '../../types'
 import { calcRecoveryScore, recoveryLabel } from '../../utils/recovery'
-import Card from '../../components/ui/Card'
 import Toast, { useToast } from '../../components/ui/Toast'
 
 function daysInMonth(year: number, month: number) { return new Date(year, month + 1, 0).getDate() }
@@ -12,7 +11,6 @@ function firstDayOfMonth(year: number, month: number) { return new Date(year, mo
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
-// ── Main component ────────────────────────────────────────────────────────────
 export default function HeroHistory() {
   const { profile } = useAuthStore()
   const qc = useQueryClient()
@@ -88,31 +86,24 @@ export default function HeroHistory() {
     },
   })
 
-  // One entry per date — first wins (query is ordered newest first)
   const journalByDate: Record<string, JournalLog> = {}
   for (const j of journalLogs) {
     if (!journalByDate[j.logged_at]) journalByDate[j.logged_at] = j
   }
 
-  // Only keep sessions that are meaningful:
-  // - rest days always count
-  // - workout sessions only if at least 1 set is done
   const validSessions = sessions.filter(s =>
     (s.session_type ?? 'workout') === 'rest' || (s.sets ?? []).some(set => set.done)
   )
 
-  // ONE session per day: prefer workout over rest; within workouts, keep most done sets
   const sessionsByDate: Record<string, Session> = {}
   for (const s of validSessions) {
     const existing = sessionsByDate[s.logged_at]
     const type = s.session_type ?? 'workout'
-
     if (!existing) {
       sessionsByDate[s.logged_at] = s
     } else {
       const existingType = existing.session_type ?? 'workout'
       if (type === 'workout' && existingType === 'rest') {
-        // workout beats rest
         sessionsByDate[s.logged_at] = s
       } else if (type === 'workout' && existingType === 'workout') {
         const existingDone = existing.sets?.filter(set => set.done).length ?? 0
@@ -141,93 +132,105 @@ export default function HeroHistory() {
   const workoutSessions = validSessions.filter(s => (s.session_type ?? 'workout') === 'workout')
   const totalDoneSets = workoutSessions.reduce((acc, s) => acc + (s.sets?.filter(set => set.done).length ?? 0), 0)
   const showRecovery = profile?.plan_type === 'B' || profile?.plan_type === 'C'
+  const todayStr = today.toISOString().slice(0, 10)
 
   if (isLoading) return (
-    <div className="flex items-center justify-center h-screen">
-      <p className="font-[DM_Mono] text-[#555] text-[13px] tracking-[2px]">LOADING...</p>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+      <p style={{ fontFamily: 'DM Mono, monospace', color: 'var(--text3)', fontSize: 13, letterSpacing: 2 }}>LOADING...</p>
     </div>
   )
 
   return (
-    <div className="p-5 max-w-lg mx-auto space-y-5">
+    <div className="wrap" style={{ paddingTop: 24 }}>
       <Toast toast={toast} />
-      <div className="pt-4">
-        <h1 className="font-[Bebas_Neue] text-4xl text-white tracking-wide">HISTORY</h1>
+
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 48, letterSpacing: 4, lineHeight: 1, color: 'var(--text)', margin: 0 }}>
+          HISTORY
+        </h1>
       </div>
 
       {/* Calendar Nav */}
-      <div className="flex items-center justify-between">
-        <button onClick={prevMonth} className="w-9 h-9 rounded-[10px] border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition-all">←</button>
-        <span className="font-[Bebas_Neue] text-2xl text-white tracking-wide">{MONTH_NAMES[month]} {year}</span>
-        <button onClick={nextMonth} disabled={year === today.getFullYear() && month === today.getMonth()}
-          className="w-9 h-9 rounded-[10px] border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition-all disabled:opacity-30">→</button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <button onClick={prevMonth} className="cal-nav-btn">←</button>
+        <span className="cal-month">{MONTH_NAMES[month]} {year}</span>
+        <button
+          onClick={nextMonth}
+          disabled={year === today.getFullYear() && month === today.getMonth()}
+          className="cal-nav-btn"
+          style={{ opacity: (year === today.getFullYear() && month === today.getMonth()) ? 0.3 : 1 }}
+        >→</button>
       </div>
 
       {/* Calendar Grid */}
-      <Card className="p-4">
-        <div className="grid grid-cols-7 mb-2">
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 14 }}>
+        <div className="cal-grid" style={{ marginBottom: 4 }}>
           {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
-            <div key={d} className="text-center text-[#444] text-[10px] font-[DM_Mono] pb-2">{d}</div>
+            <div key={d} className="cal-dow">{d}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
+        <div className="cal-grid">
           {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
           {Array.from({ length: totalDays }).map((_, i) => {
             const day = i + 1
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
             const daySession = sessionsByDate[dateStr]
-            const isToday = dateStr === today.toISOString().slice(0, 10)
+            const isToday = dateStr === todayStr
             const isSelected = dateStr === selected
 
-            // ONE dot per day: bundle color for workout, grey for rest, nothing otherwise
             const dotColor = daySession
               ? ((daySession.session_type ?? 'workout') === 'rest'
                 ? '#444'
-                : bundles.find(b => b.id === daySession.bundle_id)?.color ?? '#c8ff00')
+                : bundles.find(b => b.id === daySession.bundle_id)?.color ?? 'var(--accent)')
               : null
 
             return (
               <button
                 key={day}
                 onClick={() => setSelected(isSelected ? null : dateStr)}
-                className={`aspect-square flex flex-col items-center justify-center rounded-[8px] transition-all ${
-                  isSelected ? 'bg-[#c8ff00]/10 border border-[#c8ff00]/40' :
-                  isToday ? 'border border-[#333]' : 'hover:bg-[#1a1a1a]'
-                }`}
+                className={`cal-cell${isToday ? ' today' : ''}${daySession ? ' has-session' : ''}${isSelected ? ' selected' : ''}`}
               >
-                <span className={`text-sm leading-none ${isToday ? 'text-[#c8ff00] font-bold' : 'text-[#888]'}`}>{day}</span>
-                <div className="mt-1 h-1.5 flex items-center">
-                  {dotColor && <div className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor }} />}
-                </div>
+                <span className="cal-day-num">{day}</span>
+                {dotColor && <div className="cal-dot" style={{ background: dotColor }} />}
               </button>
             )
           })}
         </div>
-      </Card>
+      </div>
 
       {/* Day Detail */}
       {selected && (
-        <div className="rounded-[16px] border border-[#1e1e1e] bg-[#111] overflow-hidden">
-          {/* Date header */}
-          <div className="px-5 pt-5 pb-4 border-b border-[#1e1e1e] flex items-center justify-between gap-3">
-            <h2 className="font-[Bebas_Neue] text-[22px] text-white tracking-[2px] leading-none">
-              {new Date(selected + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
-            </h2>
-            {selectedSession && (
-              <button
-                onClick={() => deleteSession.mutate(selectedSession.id)}
-                disabled={deletingId === selectedSession.id}
-                className="shrink-0 text-[10px] font-[DM_Mono] font-bold uppercase tracking-[1.5px] px-3 py-1.5 rounded-[100px] border transition-all disabled:opacity-40"
-                style={{ background: 'rgba(255,61,61,0.06)', borderColor: 'rgba(255,61,61,0.25)', color: '#ff6b6b' }}
-              >
-                {deletingId === selectedSession.id ? 'Deleting...' : 'Delete'}
-              </button>
-            )}
+        <div className="cal-detail">
+          <div className="cal-detail-header">
+            <div>
+              <p className="cal-detail-date">
+                {new Date(selected + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {selectedSession && (
+                <button
+                  onClick={() => deleteSession.mutate(selectedSession.id)}
+                  disabled={deletingId === selectedSession.id}
+                  style={{
+                    background: 'rgba(255,61,61,0.06)', borderColor: 'rgba(255,61,61,0.25)',
+                    color: '#ff6b6b', border: '1px solid', borderRadius: 100,
+                    fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: 1.5,
+                    textTransform: 'uppercase', padding: '6px 14px', cursor: 'pointer',
+                    opacity: deletingId === selectedSession.id ? 0.4 : 1,
+                  }}
+                >
+                  {deletingId === selectedSession.id ? 'Deleting...' : 'Delete'}
+                </button>
+              )}
+              <button className="cal-close" onClick={() => setSelected(null)}>✕</button>
+            </div>
           </div>
 
           {!selectedSession && !selectedJournal && (
-            <div className="px-5 py-8 text-center">
-              <p className="text-[#333] font-[DM_Mono] text-[12px]">// Nothing logged this day</p>
+            <div style={{ padding: '32px 20px', textAlign: 'center' }}>
+              <p style={{ fontFamily: 'DM Mono, monospace', color: 'var(--text3)', fontSize: 12, letterSpacing: 2 }}>// Nothing logged this day</p>
             </div>
           )}
 
@@ -238,14 +241,13 @@ export default function HeroHistory() {
 
             if (type === 'rest') {
               return (
-                <div className="px-5 py-4 flex items-center gap-3 border-b border-[#1e1e1e]">
-                  <span className="text-xl">🔋</span>
-                  <p className="font-[Bebas_Neue] text-[18px] text-[#888] tracking-[2px]">REST DAY</p>
+                <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 20 }}>🔋</span>
+                  <p style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 18, letterSpacing: 2, color: 'var(--text2)' }}>REST DAY</p>
                 </div>
               )
             }
 
-            // Group sets by exercise (done only)
             const exerciseOrder: string[] = []
             const setsByEx: Record<string, typeof selectedSession.sets> = {}
             for (const set of (selectedSession.sets ?? []).sort((a, b) => a.set_number - b.set_number)) {
@@ -258,29 +260,26 @@ export default function HeroHistory() {
             }
 
             return (
-              <div className="border-b border-[#1e1e1e]">
-                {/* Session name row */}
-                <div className="history-session-header border-b border-[#1a1a1a]">
-                  {bundle && <div className="w-2 h-2 rounded-full shrink-0" style={{ background: bundle.color }} />}
-                  <p className="history-session-name">{selectedSession.bundle_name}</p>
+              <div style={{ borderBottom: '1px solid var(--border)' }}>
+                <div className="history-session-header" style={{ borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                    {bundle && <div style={{ width: 8, height: 8, borderRadius: '50%', background: bundle.color, flexShrink: 0 }} />}
+                    <p className="cal-detail-name">{selectedSession.bundle_name}</p>
+                  </div>
                 </div>
 
                 {exerciseOrder.length === 0 ? (
-                  <p className="px-5 py-4 text-[#333] font-[DM_Mono] text-[12px]">// No completed sets</p>
+                  <p style={{ padding: '16px 18px', fontFamily: 'DM Mono, monospace', color: 'var(--text3)', fontSize: 12 }}>// No completed sets</p>
                 ) : (
-                  <div className="px-5 py-3 space-y-4">
+                  <div style={{ padding: '12px 18px 16px' }}>
                     {exerciseOrder.map(name => (
-                      <div key={name}>
-                        <p className="ex-history-label">{name}</p>
-                        <div className="space-y-1.5">
+                      <div key={name} style={{ marginBottom: 12 }}>
+                        <p className="hist-ex-name">{name}</p>
+                        <div className="hist-sets">
                           {setsByEx[name]!.map((set, i) => (
-                            <div key={i} className="history-set-row">
-                              <span className="history-set-num">Set {set.set_number}</span>
-                              <span className="history-set-val">
-                                {set.weight != null ? `${set.weight} kg` : '—'} × {set.reps ?? '—'}
-                              </span>
-                              <span className="history-set-done">✓</span>
-                            </div>
+                            <span key={i} className="hist-set done">
+                              S{set.set_number} {set.weight != null ? `${set.weight}kg` : '—'}×{set.reps ?? '—'}
+                            </span>
                           ))}
                         </div>
                       </div>
@@ -289,7 +288,9 @@ export default function HeroHistory() {
                 )}
 
                 {selectedSession.notes && (
-                  <p className="px-5 pb-3 text-[#555] font-[DM_Mono] text-[11px] italic">"{selectedSession.notes}"</p>
+                  <p style={{ padding: '0 18px 14px', fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)', fontStyle: 'italic' }}>
+                    "{selectedSession.notes}"
+                  </p>
                 )}
               </div>
             )
@@ -299,7 +300,7 @@ export default function HeroHistory() {
           {selectedJournal && (() => {
             const j = selectedJournal
             const rows = [
-              j.steps_done != null && { label: 'Steps', value: j.steps_done ? '✓ Done' : '✗ Not done', accent: j.steps_done ? '#c8ff00' : '#ff3d3d' },
+              j.steps_done != null && { label: 'Steps', value: j.steps_done ? '✓ Done' : '✗ Not done', accent: j.steps_done ? 'var(--accent)' : 'var(--red)' },
               j.sleep_hours != null && { label: 'Sleep', value: `${j.sleep_hours}h${j.sleep_quality ? ` · ${j.sleep_quality}` : ''}` },
               j.mood && { label: 'Mood', value: j.mood },
               j.soreness && { label: 'Soreness', value: j.soreness },
@@ -317,69 +318,26 @@ export default function HeroHistory() {
             })()
 
             return (
-              <div className="border-b border-[#1e1e1e]">
-                <div className="px-5 pt-3 pb-1">
-                  <p className="text-[9px] font-[DM_Mono] font-bold text-[#555] uppercase tracking-[2px] mb-3">Journal</p>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+              <div>
+                <div style={{ padding: '14px 18px 12px' }}>
+                  <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--text3)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Journal</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 20px' }}>
                     {rows.map((row, i) => (
-                      <div key={i} className="flex items-baseline justify-between gap-2">
-                        <span className="text-[#444] font-[DM_Mono] text-[10px] uppercase tracking-[1px] shrink-0 capitalize">{row.label}</span>
-                        <span className="font-[DM_Mono] text-[11px] capitalize truncate" style={{ color: row.accent ?? '#888' }}>{row.value}</span>
+                      <div key={i} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
+                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 1, flexShrink: 0 }}>{row.label}</span>
+                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: row.accent ?? 'var(--text2)', textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.value}</span>
                       </div>
                     ))}
                   </div>
                   {j.notes && (
-                    <p className="text-[#444] font-[DM_Mono] text-[11px] italic mt-2">"{j.notes}"</p>
+                    <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)', fontStyle: 'italic', marginTop: 8 }}>"{j.notes}"</p>
                   )}
                 </div>
                 {showRecovery && (
-                  <div className="flex items-center justify-between px-5 py-3 border-t border-[#1a1a1a]">
-                    <p className="text-[#555] font-[DM_Mono] text-[10px] uppercase tracking-[2px]">Recovery Score</p>
-                    <span className="font-[Bebas_Neue] text-[18px] tracking-wide" style={{ color: scoreColor }}>
-                      {score} <span className="font-[DM_Mono] text-[10px] font-normal">{scoreLabel.split(' —')[0]}</span>
-                    </span>
-                  </div>
-                )}
-              </div>
-            )
-          })()}
-
-          {/* Journal-only day (no session) */}
-          {!selectedSession && selectedJournal && (() => {
-            const j = selectedJournal
-            const rows = [
-              j.steps_done != null && { label: 'Steps', value: j.steps_done ? '✓ Done' : '✗ Not done', accent: j.steps_done ? '#c8ff00' : '#ff3d3d' },
-              j.sleep_hours != null && { label: 'Sleep', value: `${j.sleep_hours}h${j.sleep_quality ? ` · ${j.sleep_quality}` : ''}` },
-              j.mood && { label: 'Mood', value: j.mood },
-              j.soreness && { label: 'Soreness', value: j.soreness },
-              j.water_glasses != null && { label: 'Water', value: `${j.water_glasses} glasses` },
-              j.body_weight != null && { label: 'Weight', value: `${j.body_weight} kg` },
-            ].filter(Boolean) as { label: string; value: string; accent?: string }[]
-
-            const { score, label: scoreLabel, color: scoreColor } = (() => {
-              const s = calcRecoveryScore(j)
-              const { label, color } = recoveryLabel(s)
-              return { score: s, label, color }
-            })()
-
-            return (
-              <div>
-                <div className="px-5 pt-3 pb-1">
-                  <p className="text-[9px] font-[DM_Mono] font-bold text-[#555] uppercase tracking-[2px] mb-3">Journal</p>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
-                    {rows.map((row, i) => (
-                      <div key={i} className="flex items-baseline justify-between gap-2">
-                        <span className="text-[#444] font-[DM_Mono] text-[10px] uppercase tracking-[1px] shrink-0 capitalize">{row.label}</span>
-                        <span className="font-[DM_Mono] text-[11px] capitalize truncate" style={{ color: row.accent ?? '#888' }}>{row.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {showRecovery && (
-                  <div className="flex items-center justify-between px-5 py-3 border-t border-[#1a1a1a]">
-                    <p className="text-[#555] font-[DM_Mono] text-[10px] uppercase tracking-[2px]">Recovery Score</p>
-                    <span className="font-[Bebas_Neue] text-[18px] tracking-wide" style={{ color: scoreColor }}>
-                      {score} <span className="font-[DM_Mono] text-[10px] font-normal">{scoreLabel.split(' —')[0]}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 18px 14px', borderTop: '1px solid var(--border)' }}>
+                    <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 2 }}>Recovery Score</p>
+                    <span style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 18, letterSpacing: 1, color: scoreColor }}>
+                      {score} <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, fontWeight: 400 }}>{scoreLabel.split(' —')[0]}</span>
                     </span>
                   </div>
                 )}
@@ -390,20 +348,20 @@ export default function HeroHistory() {
       )}
 
       {/* Monthly summary */}
-      <Card className="p-4 flex items-center justify-around text-center">
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-around', textAlign: 'center', marginTop: 12 }}>
         <div>
-          <p className="font-[Bebas_Neue] text-3xl text-[#c8ff00]">{workoutSessions.length}</p>
-          <p className="text-[#555] font-[DM_Mono] text-[10px] uppercase tracking-[1px]">Sessions</p>
+          <p style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 32, color: 'var(--accent)', lineHeight: 1 }}>{workoutSessions.length}</p>
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>Sessions</p>
         </div>
         <div>
-          <p className="font-[Bebas_Neue] text-3xl text-[#3d9fff]">{journalLogs.length}</p>
-          <p className="text-[#555] font-[DM_Mono] text-[10px] uppercase tracking-[1px]">Journal Days</p>
+          <p style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 32, color: 'var(--blue)', lineHeight: 1 }}>{journalLogs.length}</p>
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>Journal Days</p>
         </div>
         <div>
-          <p className="font-[Bebas_Neue] text-3xl text-white">{totalDoneSets}</p>
-          <p className="text-[#555] font-[DM_Mono] text-[10px] uppercase tracking-[1px]">Sets Done</p>
+          <p style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 32, color: 'var(--text)', lineHeight: 1 }}>{totalDoneSets}</p>
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>Sets Done</p>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }

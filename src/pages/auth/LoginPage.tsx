@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
-import Button from '../../components/ui/Button'
-import Input from '../../components/ui/Input'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -13,14 +11,11 @@ export default function LoginPage() {
   const { profile, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
-  // Redirect once profile is loaded after login
   useEffect(() => {
     if (!authLoading && profile) {
       const dest = profile.role === 'super_admin' ? '/admin' : profile.role === 'coach' ? '/coach' : '/hero'
       navigate(dest, { replace: true })
     } else if (!authLoading && !profile && loading) {
-      // Auth completed but no profile found — only show error after a short delay
-      // to avoid false positives during the initial auth state resolution
       const t = setTimeout(() => {
         setLoading(false)
         setError('Could not load your account. Please try again.')
@@ -38,68 +33,74 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     }
-    // On success: authLoading will flip, useEffect above will redirect
   }
 
   return (
-    <div className="min-h-screen bg-[#080808] flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div style={{ minHeight: '100dvh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ width: '100%', maxWidth: 380 }}>
 
-        {/* Back to home */}
         <button
           onClick={() => navigate('/')}
-          className="text-[#555] hover:text-white text-sm transition-colors mb-8 block"
+          style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)', letterSpacing: 1, background: 'none', border: 'none', cursor: 'pointer', marginBottom: 32, display: 'block' }}
         >
           ← Back to Home
         </button>
 
-        <div className="mb-8">
-          <h1 className="font-[Bebas_Neue] text-5xl text-white tracking-wider">SIGN IN</h1>
-          <p className="text-[#555] text-sm mt-1">Welcome back to RafaaTech</p>
-        </div>
+        <p className="auth-logo">
+          HUSSAIN<em>.LIFT</em>
+        </p>
+        <p className="auth-sub">SIGN IN</p>
 
-        <div className="bg-[#111] border border-[#222] rounded-[20px] p-7">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Email"
-              type="email"
-              required
-              placeholder="you@example.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              autoComplete="email"
-            />
-            <Input
-              label="Password"
-              type="password"
-              required
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
+        <div className="auth-box">
+          <form onSubmit={handleSubmit}>
+            <div className="auth-field">
+              <label className="auth-label">Email</label>
+              <input
+                type="email"
+                required
+                placeholder="you@example.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                autoComplete="email"
+                className="auth-input"
+              />
+            </div>
+            <div className="auth-field">
+              <label className="auth-label">Password</label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="current-password"
+                className="auth-input"
+              />
+            </div>
 
-            {error && (
-              <div className="p-3 bg-[#ff3d3d]/10 border border-[#ff3d3d]/30 rounded-[10px]">
-                <p className="text-[#ff3d3d] text-sm">{error}</p>
-              </div>
-            )}
+            {error && <p className="auth-error">{error}</p>}
 
-            <Button type="submit" disabled={loading || authLoading} className="w-full mt-2">
+            <button type="submit" disabled={loading || authLoading} className="auth-btn">
               {loading || authLoading ? 'Signing in...' : 'Sign In'}
-            </Button>
+            </button>
           </form>
 
-          <div className="mt-5 text-center">
-            <Link to="/reset-password" className="text-sm text-[#555] hover:text-[#c8ff00] transition-colors">
+          <div style={{ marginTop: 18, textAlign: 'center' }}>
+            <Link
+              to="/reset-password"
+              style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)', textDecoration: 'none', letterSpacing: 1 }}
+            >
               Forgot password?
             </Link>
           </div>
         </div>
 
-        <p className="text-center text-[#444] text-sm mt-6">
+        <p style={{ textAlign: 'center', fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)', marginTop: 24 }}>
           Don't have an account?{' '}
-          <button onClick={() => navigate('/')} className="text-[#c8ff00] hover:text-white transition-colors font-semibold">
+          <button
+            onClick={() => navigate('/')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}
+          >
             Back to Home
           </button>
         </p>

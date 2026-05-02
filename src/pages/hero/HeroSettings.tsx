@@ -6,7 +6,6 @@ import { useAuth } from '../../context/AuthContext'
 import type { GhostPreference } from '../../types'
 import { PLAN_NAMES } from '../../types'
 import { APP_CONFIG } from '../../config/app'
-import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 
@@ -94,32 +93,32 @@ export default function HeroSettings() {
   }
 
   return (
-    <div className="p-5 max-w-lg mx-auto space-y-5 pb-10">
-      <div className="pt-4">
-        <h1 className="font-[Bebas_Neue] text-4xl text-white tracking-wide">SETTINGS</h1>
+    <div className="wrap" style={{ paddingTop: 24 }}>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 48, letterSpacing: 4, lineHeight: 1, color: 'var(--text)', margin: 0 }}>SETTINGS</h1>
       </div>
 
       {/* Profile */}
-      <Card className="p-5">
+      <div className="card" style={{ padding: '18px 20px', marginBottom: 10 }}>
         <SectionHead>Profile</SectionHead>
         <Row label="Name" value={profile?.full_name ?? '—'} />
         <Row label="Email" value={profile?.email ?? '—'} />
         {profile?.phone && <Row label="Phone" value={profile.phone} />}
         <Row label="Goal" value={profile?.goal ?? '—'} />
         <Row label="Height" value={profile?.height ? `${profile.height} cm` : '—'} />
-        <div className="flex justify-between items-center text-sm py-2">
-          <span className="text-[#555]">Plan</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, paddingBottom: 8 }}>
+          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)' }}>Plan</span>
           <Badge variant={profile?.plan_type === 'C' ? 'accent' : profile?.plan_type === 'B' ? 'blue' : 'muted'}>
             Plan {profile?.plan_type} — {PLAN_NAMES[profile?.plan_type ?? 'A']}
           </Badge>
         </div>
-      </Card>
+      </div>
 
       {/* Workout Ghost */}
-      <Card className="p-5 space-y-4">
+      <div className="card" style={{ padding: '18px 20px', marginBottom: 10 }}>
         <SectionHead>Workout Ghost</SectionHead>
-        <p className="text-[#555] text-xs -mt-2">What numbers appear as placeholders during workouts</p>
-        <div className="space-y-2">
+        <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text3)', marginBottom: 12 }}>What numbers appear as placeholders during workouts</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
           {[
             { value: 'last' as GhostPreference, label: 'Last Session', desc: 'Shows numbers from your most recent workout for each exercise' },
             { value: 'best' as GhostPreference, label: 'Personal Best', desc: 'Shows your all-time heaviest weight for each exercise' },
@@ -127,19 +126,23 @@ export default function HeroSettings() {
             <button
               key={opt.value}
               onClick={() => setGhost(opt.value)}
-              className={`w-full p-4 rounded-[12px] border text-left transition-all ${
-                ghost === opt.value
-                  ? 'bg-[#c8ff00]/5 border-[#c8ff00]/40'
-                  : 'border-[#333] hover:border-[#444]'
-              }`}
+              style={{
+                width: '100%', padding: 14, borderRadius: 12, textAlign: 'left', cursor: 'pointer',
+                background: ghost === opt.value ? 'var(--accent-dim)' : 'var(--lift)',
+                border: `1px solid ${ghost === opt.value ? 'rgba(200,255,0,0.4)' : 'var(--border2)'}`,
+              }}
             >
-              <div className="flex items-center gap-3">
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${ghost === opt.value ? 'border-[#c8ff00] bg-[#c8ff00]' : 'border-[#444]'}`}>
-                  {ghost === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-[#080808]" />}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 16, height: 16, borderRadius: '50%', border: `2px solid ${ghost === opt.value ? 'var(--accent)' : 'var(--border2)'}`,
+                  background: ghost === opt.value ? 'var(--accent)' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  {ghost === opt.value && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--bg)' }} />}
                 </div>
                 <div>
-                  <p className="text-white text-sm font-medium">{opt.label}</p>
-                  <p className="text-[#555] text-xs mt-0.5">{opt.desc}</p>
+                  <p style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>{opt.label}</p>
+                  <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>{opt.desc}</p>
                 </div>
               </div>
             </button>
@@ -148,89 +151,79 @@ export default function HeroSettings() {
         <Button onClick={() => save.mutate()} disabled={save.isPending} className="w-full">
           {saved ? '✓ Saved!' : save.isPending ? 'Saving...' : 'Save Settings'}
         </Button>
-      </Card>
+      </div>
 
-      {/* Notifications — placeholder toggle */}
-      <Card className="p-5">
+      {/* Notifications */}
+      <div className="card" style={{ padding: '18px 20px', marginBottom: 10 }}>
         <SectionHead>Notifications</SectionHead>
-        <div className="flex items-center justify-between py-1">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4, paddingBottom: 4 }}>
           <div>
-            <p className="text-white text-sm">Push Notifications</p>
-            <p className="text-[#444] text-xs mt-0.5">Receive alerts for plan updates and approvals</p>
+            <p style={{ color: 'var(--text)', fontSize: 13 }}>Push Notifications</p>
+            <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>Receive alerts for plan updates and approvals</p>
           </div>
-          <div className="w-10 h-6 rounded-full bg-[#c8ff00]/10 border border-[#c8ff00]/20 flex items-center px-0.5">
-            <span className="w-4 h-4 rounded-full bg-[#c8ff00]/40" />
+          <div style={{ width: 40, height: 24, borderRadius: 100, background: 'var(--accent-dim)', border: '1px solid rgba(200,255,0,0.2)', display: 'flex', alignItems: 'center', padding: '0 2px' }}>
+            <span style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(200,255,0,0.4)', display: 'block' }} />
           </div>
         </div>
-        <p className="text-[#333] text-xs mt-3">Push notification settings will be available after plan activation.</p>
-      </Card>
+        <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--border2)', marginTop: 10 }}>Push notification settings will be available after plan activation.</p>
+      </div>
 
       {/* Privacy */}
-      <Card className="p-5 space-y-1">
+      <div className="card" style={{ padding: '18px 20px', marginBottom: 10 }}>
         <SectionHead>Privacy</SectionHead>
-
-        {/* Privacy Policy */}
-        <button
-          onClick={() => setShowPrivacy(true)}
-          className="w-full flex items-center justify-between py-3 text-sm text-[#888] hover:text-white transition-colors border-b border-[#111]"
-        >
-          <span>Privacy Policy</span>
-          <span className="text-[#444]">→</span>
-        </button>
-
-        {/* Right to Access */}
-        <button
-          onClick={() => setShowDataRequest(true)}
-          className="w-full flex items-center justify-between py-3 text-sm text-[#888] hover:text-white transition-colors border-b border-[#111]"
-        >
-          <span>Right to Access My Data</span>
-          <span className="text-[#444]">→</span>
-        </button>
-
-        {/* Right to Rectify */}
-        <button
-          onClick={() => setShowCorrection(true)}
-          className="w-full flex items-center justify-between py-3 text-sm text-[#888] hover:text-white transition-colors"
-        >
-          <span>Right to Rectify My Data</span>
-          <span className="text-[#444]">→</span>
-        </button>
-      </Card>
+        {[
+          { label: 'Privacy Policy', onClick: () => setShowPrivacy(true) },
+          { label: 'Right to Access My Data', onClick: () => setShowDataRequest(true) },
+          { label: 'Right to Rectify My Data', onClick: () => setShowCorrection(true) },
+        ].map((item, i, arr) => (
+          <button
+            key={item.label}
+            onClick={item.onClick}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              paddingTop: 12, paddingBottom: 12, background: 'none', border: 'none', cursor: 'pointer',
+              borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+              fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)',
+            }}
+          >
+            <span>{item.label}</span>
+            <span style={{ color: 'var(--border2)' }}>→</span>
+          </button>
+        ))}
+      </div>
 
       {/* Terms */}
-      <Card className="p-5">
+      <div className="card" style={{ padding: '18px 20px', marginBottom: 10 }}>
         <SectionHead>Legal</SectionHead>
         <button
           onClick={() => setShowTerms(true)}
-          className="w-full flex items-center justify-between py-3 text-sm text-[#888] hover:text-white transition-colors"
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 12, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)' }}
         >
           <span>Terms &amp; Conditions</span>
-          <span className="text-[#444]">→</span>
+          <span style={{ color: 'var(--border2)' }}>→</span>
         </button>
-      </Card>
+      </div>
 
       {/* About */}
-      <Card className="p-5">
+      <div className="card" style={{ padding: '18px 20px', marginBottom: 10 }}>
         <SectionHead>About</SectionHead>
-        <div className="space-y-2">
-          <Row label="App" value={APP_CONFIG.name} />
-          <Row label="Version" value={APP_CONFIG.version} />
-          <div className="text-center pt-2">
-            <p className="text-[#333] text-sm" style={{ fontFamily: 'serif', direction: 'rtl' }}>{APP_CONFIG.nameArabic}</p>
-            <p className="text-[#2a2a2a] text-xs font-[DM_Mono] mt-0.5">{APP_CONFIG.tagline}</p>
-          </div>
+        <Row label="App" value={APP_CONFIG.name} />
+        <Row label="Version" value={APP_CONFIG.version} />
+        <div style={{ textAlign: 'center', paddingTop: 8 }}>
+          <p style={{ fontFamily: 'serif', direction: 'rtl', color: 'var(--border2)', fontSize: 14 }}>{APP_CONFIG.nameArabic}</p>
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--border)', marginTop: 2 }}>{APP_CONFIG.tagline}</p>
         </div>
-      </Card>
+      </div>
 
       {/* Sign Out */}
-      <Card className="p-3">
+      <div className="card" style={{ padding: 12, marginBottom: 10 }}>
         <button
           onClick={signOut}
-          className="w-full py-3.5 rounded-[12px] text-[#ff3d3d]/70 hover:text-[#ff3d3d] hover:bg-[#ff3d3d]/5 transition-all text-sm font-semibold"
+          style={{ width: '100%', padding: '14px 0', borderRadius: 12, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: 12, letterSpacing: 2, color: 'var(--red)', fontWeight: 700 }}
         >
-          Sign Out
+          SIGN OUT
         </button>
-      </Card>
+      </div>
 
       {/* ── Modals ── */}
 

@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import type { JournalLog, SleepQuality, Mood, Soreness, CardioType } from '../../types'
-import Card from '../../components/ui/Card'
 import WeekStrip, { getWeekDates } from '../../components/ui/WeekStrip'
 
 const TODAY = new Date().toISOString().slice(0, 10)
@@ -31,32 +30,6 @@ const SORENESS_OPTS: { value: Soreness; label: string; emoji: string }[] = [
 ]
 
 const CARDIO_TYPES: CardioType[] = ['Stairs', 'Elliptical', 'Cycling', 'HIIT', 'Running', 'Other']
-
-function PillSelector<T extends string>({ options, value, onChange }: {
-  options: { value: T; label: string; emoji: string }[]
-  value?: T
-  onChange: (v: T) => void
-}) {
-  return (
-    <div className="flex flex-wrap gap-3">
-      {options.map(o => (
-        <button
-          key={o.value}
-          onClick={() => onChange(o.value)}
-          style={{ minHeight: 44 }}
-          className={`px-5 py-2.5 rounded-[100px] text-[15px] font-semibold border transition-all flex items-center gap-2 ${
-            value === o.value
-              ? 'bg-[rgba(200,255,0,0.08)] border-[#c8ff00] text-[#c8ff00]'
-              : 'border-[#333] text-[#666] hover:border-[#555] hover:text-[#aaa]'
-          }`}
-        >
-          <span className="text-base">{o.emoji}</span>
-          <span>{o.label}</span>
-        </button>
-      ))}
-    </div>
-  )
-}
 
 export default function HeroJournal() {
   const { profile } = useAuthStore()
@@ -88,14 +61,12 @@ export default function HeroJournal() {
   const dbLog = weekLogs.find(l => l.logged_at === selectedDate) ?? null
   const log: Partial<JournalLog> = { ...dbLog, ...(localChanges[selectedDate] ?? {}) }
 
-  // dots: green if log exists
   const dotsMap: Record<string, boolean> = {}
   for (const l of weekLogs) dotsMap[l.logged_at] = true
 
   function handlePrevWeek() {
     const newOffset = weekOffset - 1
     setWeekOffset(newOffset)
-    // Keep selected date in new week if possible, else pick Saturday
     const newDates = getWeekDates(newOffset)
     if (!newDates.includes(selectedDate)) setSelectedDate(newDates[6])
   }
@@ -104,7 +75,6 @@ export default function HeroJournal() {
     const newOffset = weekOffset + 1
     setWeekOffset(newOffset)
     const newDates = getWeekDates(newOffset)
-    // If advancing to current week, jump to today
     if (newDates.includes(TODAY)) setSelectedDate(TODAY)
     else if (!newDates.includes(selectedDate)) setSelectedDate(newDates[0])
   }
@@ -154,13 +124,22 @@ export default function HeroJournal() {
   const selectedDObj = new Date(selectedDate + 'T12:00:00')
   const dateLabel = selectedDObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
-  if (isLoading) return <div className="flex items-center justify-center h-screen"><p className="font-[DM_Mono] text-[#555] text-[13px] tracking-[2px]">LOADING...</p></div>
+  if (isLoading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+      <p style={{ fontFamily: 'DM Mono, monospace', color: 'var(--text3)', fontSize: 13, letterSpacing: 2 }}>LOADING...</p>
+    </div>
+  )
 
   return (
-    <div className="p-5 max-w-lg mx-auto space-y-5">
-      <div className="pt-4">
-        <h1 className="font-[Bebas_Neue] text-4xl text-white tracking-wide">JOURNAL</h1>
-        <p className="text-[#333] text-sm mt-0.5">Auto-saves as you go</p>
+    <div className="wrap" style={{ paddingTop: 24 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 48, letterSpacing: 4, lineHeight: 1, color: 'var(--text)', margin: 0 }}>
+          JOURNAL
+        </h1>
+        <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text3)', marginTop: 4, letterSpacing: 1 }}>
+          Auto-saves as you go
+        </p>
       </div>
 
       {/* Week strip */}
@@ -176,163 +155,242 @@ export default function HeroJournal() {
       />
 
       {/* Selected date label */}
-      <div className="flex items-center justify-between">
-        <p className="text-[#888] text-[15px]">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)' }}>
           {isToday ? 'Today — ' : ''}{dateLabel}
         </p>
-        {dbLog && !isFuture && <p className="text-[#555] text-xs font-[DM_Mono]">Logged ✓</p>}
+        {dbLog && !isFuture && (
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--accent)', letterSpacing: 1 }}>Logged ✓</p>
+        )}
       </div>
 
       {/* Future date — no editing */}
       {isFuture ? (
-        <div className="rounded-[16px] border border-[#1a1a1a] bg-[#111] p-8 text-center">
-          <p className="text-[#444] font-[DM_Mono] text-[12px]">// Can't log future days</p>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 20px', textAlign: 'center' }}>
+          <p style={{ fontFamily: 'DM Mono, monospace', color: 'var(--text3)', fontSize: 12, letterSpacing: 2 }}>// Can't log future days</p>
         </div>
       ) : (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
           {/* Steps */}
           {config?.steps && (
-            <Card className="p-6 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white font-semibold">Steps</p>
-                  <p className="text-[#555] text-sm">Target: {profile?.steps_target?.toLocaleString() ?? '10,000'} steps</p>
+            <div className={`check-row${log.steps_done ? ' checked' : ''}`}>
+              <div className="check-row-left">
+                <div className="check-row-icon-label">
+                  <span className="check-row-icon">👟</span>
+                  <span className="check-row-label">Steps</span>
                 </div>
-                <button
-                  onClick={() => set('steps_done', !log.steps_done)}
-                  className={`w-12 h-12 rounded-full border-2 flex items-center justify-center text-lg transition-all ${log.steps_done ? 'bg-[#c8ff00] border-[#c8ff00] text-[#080808]' : 'border-[#333] text-[#444]'}`}
-                >
-                  {log.steps_done ? '✓' : ''}
-                </button>
+                <span className={`check-row-sub${log.steps_done ? ' done-sub' : ''}`}>
+                  Target: {profile?.steps_target?.toLocaleString() ?? '10,000'} steps
+                </span>
               </div>
-            </Card>
+              <button
+                onClick={() => set('steps_done', !log.steps_done)}
+                className={`big-check${log.steps_done ? ' done' : ''}`}
+              >
+                {log.steps_done ? '✓' : ''}
+              </button>
+            </div>
           )}
 
           {/* Sleep */}
           {config?.sleep && (
-            <Card className="p-6 space-y-4">
-              <div>
-                <p className="text-white font-semibold">Sleep</p>
-                <p className="text-[#555] text-xs mt-0.5">Last night's sleep → affects today's recovery</p>
+            <div className="daily-checklist">
+              <div className="checklist-header">
+                <p className="checklist-title">// SLEEP</p>
               </div>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number" min={0} max={24} step={0.5}
-                  placeholder="7.5"
-                  value={log.sleep_hours ?? ''}
-                  onChange={e => set('sleep_hours', parseFloat(e.target.value) || undefined)}
-                  className="w-24 px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[10px] text-white text-center focus:outline-none focus:border-[#c8ff00] font-[DM_Mono] text-[15px]"
-                />
-                <span className="text-[#555]">hours</span>
+              <div className="checklist-body">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input
+                    type="number" min={0} max={24} step={0.5}
+                    placeholder="7.5"
+                    value={log.sleep_hours ?? ''}
+                    onChange={e => set('sleep_hours', parseFloat(e.target.value) || undefined)}
+                    className="set-input"
+                    style={{ width: 90, textAlign: 'center' }}
+                  />
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)' }}>hours</span>
+                </div>
+                <div className="cardio-type-row">
+                  {SLEEP_OPTS.map(o => (
+                    <button
+                      key={o.value}
+                      onClick={() => set('sleep_quality', o.value)}
+                      className={`cardio-type-btn${log.sleep_quality === o.value ? ' selected' : ''}`}
+                      style={log.sleep_quality === o.value ? { background: 'var(--accent-dim)', borderColor: 'var(--accent)', color: 'var(--accent)' } : {}}
+                    >
+                      {o.emoji} {o.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <PillSelector options={SLEEP_OPTS} value={log.sleep_quality} onChange={v => set('sleep_quality', v)} />
-            </Card>
+            </div>
           )}
 
           {/* Cardio */}
           {config?.cardio && (
-            <Card className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-white font-semibold">Cardio</p>
+            <div className={`cardio-block${log.cardio_done ? ' checked' : ''}`}>
+              <div className="cardio-top">
+                <div className="cardio-label-row">
+                  <span className="cardio-icon">🏃</span>
+                  <span className="cardio-label">Cardio</span>
+                </div>
                 <button
                   onClick={() => set('cardio_done', !log.cardio_done)}
-                  className={`px-4 py-2 rounded-[100px] text-[15px] border transition-all ${log.cardio_done ? 'bg-[#c8ff00]/10 border-[#c8ff00]/40 text-[#c8ff00]' : 'border-[#333] text-[#555]'}`}
+                  className={`big-check${log.cardio_done ? ' done' : ''}`}
                 >
-                  {log.cardio_done ? 'Done ✓' : 'Mark Done'}
+                  {log.cardio_done ? '✓' : ''}
                 </button>
               </div>
               {log.cardio_done && (
                 <>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="cardio-type-row">
                     {CARDIO_TYPES.map(ct => (
-                      <button key={ct} onClick={() => set('cardio_type', ct as CardioType)}
-                        className={`px-4 py-2 rounded-[100px] text-[15px] border transition-all ${log.cardio_type === ct ? 'bg-[#c8ff00]/10 border-[#c8ff00]/40 text-[#c8ff00]' : 'border-[#333] text-[#555]'}`}>
+                      <button
+                        key={ct}
+                        onClick={() => set('cardio_type', ct as CardioType)}
+                        className={`cardio-type-btn${log.cardio_type === ct ? ' selected' : ''}`}
+                      >
                         {ct}
                       </button>
                     ))}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <input type="number" min={0} placeholder="30"
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <input
+                      type="number" min={0} placeholder="30"
                       value={log.cardio_duration ?? ''}
                       onChange={e => set('cardio_duration', parseInt(e.target.value) || undefined)}
-                      className="w-24 px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[10px] text-white text-center focus:outline-none focus:border-[#c8ff00] font-[DM_Mono] text-[15px]"
+                      className={`duration-input${log.cardio_duration ? ' filled' : ''}`}
+                      style={{ width: 90 }}
                     />
-                    <span className="text-[#555]">minutes</span>
+                    <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)' }}>minutes</span>
                   </div>
                 </>
               )}
-            </Card>
+            </div>
           )}
 
           {/* Water */}
           {config?.water && (
-            <Card className="p-6 space-y-4">
-              <p className="text-white font-semibold">Water</p>
-              <div className="flex items-center gap-6">
-                <button onClick={() => set('water_glasses', Math.max(0, (log.water_glasses ?? 0) - 1))}
-                  className="w-12 h-12 rounded-full border border-[#333] text-[#888] hover:border-[#555] hover:text-white transition-all text-2xl">
-                  −
-                </button>
-                <div className="text-center">
-                  <span className="font-[Bebas_Neue] text-5xl text-white">{log.water_glasses ?? 0}</span>
-                  <p className="text-[#555] text-sm">/ 8 glasses</p>
+            <div className="daily-checklist">
+              <div className="checklist-header">
+                <p className="checklist-title">// WATER</p>
+              </div>
+              <div className="checklist-body">
+                <div className="water-track">
+                  <button
+                    onClick={() => set('water_glasses', Math.max(0, (log.water_glasses ?? 0) - 1))}
+                    className="water-btn"
+                  >−</button>
+                  <div style={{ textAlign: 'center', flex: 1 }}>
+                    <span className="water-count">{log.water_glasses ?? 0}</span>
+                    <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>/ 8 glasses</p>
+                  </div>
+                  <button
+                    onClick={() => set('water_glasses', Math.min(20, (log.water_glasses ?? 0) + 1))}
+                    className="water-btn"
+                    style={{ borderColor: 'rgba(61,159,255,0.3)', color: 'var(--blue)' }}
+                  >+</button>
                 </div>
-                <button onClick={() => set('water_glasses', Math.min(20, (log.water_glasses ?? 0) + 1))}
-                  className="w-12 h-12 rounded-full border border-[#c8ff00]/30 text-[#c8ff00] hover:bg-[#c8ff00]/10 transition-all text-2xl">
-                  +
-                </button>
+                <div className="water-bars">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="water-bar"
+                      style={{ background: i < (log.water_glasses ?? 0) ? 'var(--blue)' : 'var(--lift2)' }}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-1.5">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className={`h-2 flex-1 rounded-full transition-all ${i < (log.water_glasses ?? 0) ? 'bg-[#3d9fff]' : 'bg-[#222]'}`} />
-                ))}
-              </div>
-            </Card>
+            </div>
           )}
 
           {/* Body Weight */}
           {config?.body_weight && (
-            <Card className="p-6 space-y-3">
-              <p className="text-white font-semibold">Body Weight</p>
-              <div className="flex items-center gap-3">
-                <input type="number" min={0} step={0.1} placeholder="75.0"
-                  value={log.body_weight ?? ''}
-                  onChange={e => set('body_weight', parseFloat(e.target.value) || undefined)}
-                  className="w-28 px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[10px] text-white text-center focus:outline-none focus:border-[#c8ff00] font-[DM_Mono] text-[15px]"
-                />
-                <span className="text-[#555]">kg</span>
+            <div className="daily-checklist">
+              <div className="checklist-header">
+                <p className="checklist-title">// BODY WEIGHT</p>
               </div>
-            </Card>
+              <div className="checklist-body">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input
+                    type="number" min={0} step={0.1} placeholder="75.0"
+                    value={log.body_weight ?? ''}
+                    onChange={e => set('body_weight', parseFloat(e.target.value) || undefined)}
+                    className="set-input"
+                    style={{ width: 110 }}
+                  />
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)' }}>kg</span>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Mood */}
           {config?.mood && (
-            <Card className="p-6 space-y-4">
-              <p className="text-white font-semibold">Mood</p>
-              <PillSelector options={MOOD_OPTS} value={log.mood} onChange={v => set('mood', v)} />
-            </Card>
+            <div className="daily-checklist">
+              <div className="checklist-header">
+                <p className="checklist-title">// MOOD</p>
+              </div>
+              <div className="checklist-body">
+                <div className="cardio-type-row">
+                  {MOOD_OPTS.map(o => (
+                    <button
+                      key={o.value}
+                      onClick={() => set('mood', o.value)}
+                      className={`cardio-type-btn${log.mood === o.value ? ' selected' : ''}`}
+                      style={log.mood === o.value ? { background: 'var(--accent-dim)', borderColor: 'var(--accent)', color: 'var(--accent)' } : {}}
+                    >
+                      {o.emoji} {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Soreness */}
           {config?.soreness && (
-            <Card className="p-6 space-y-4">
-              <p className="text-white font-semibold">Soreness</p>
-              <PillSelector options={SORENESS_OPTS} value={log.soreness} onChange={v => set('soreness', v)} />
-            </Card>
+            <div className="daily-checklist">
+              <div className="checklist-header">
+                <p className="checklist-title">// SORENESS</p>
+              </div>
+              <div className="checklist-body">
+                <div className="cardio-type-row">
+                  {SORENESS_OPTS.map(o => (
+                    <button
+                      key={o.value}
+                      onClick={() => set('soreness', o.value)}
+                      className={`cardio-type-btn${log.soreness === o.value ? ' selected' : ''}`}
+                      style={log.soreness === o.value ? { background: 'var(--accent-dim)', borderColor: 'var(--accent)', color: 'var(--accent)' } : {}}
+                    >
+                      {o.emoji} {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Notes */}
-          <Card className="p-6 space-y-3">
-            <p className="text-white font-semibold">Notes</p>
-            <textarea rows={3} placeholder="How was your day?"
-              value={log.notes ?? ''}
-              onChange={e => set('notes', e.target.value)}
-              className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#333] rounded-[14px] text-white placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00] resize-none text-[15px]"
-            />
-          </Card>
+          <div className="daily-checklist">
+            <div className="checklist-header">
+              <p className="checklist-title">// NOTES</p>
+            </div>
+            <div className="checklist-body">
+              <textarea
+                rows={3}
+                placeholder="How was your day?"
+                value={log.notes ?? ''}
+                onChange={e => set('notes', e.target.value)}
+                className="notes-input"
+                style={{ marginTop: 0 }}
+              />
+            </div>
+          </div>
 
-          <div className="h-6" />
-        </>
+          <div style={{ height: 24 }} />
+        </div>
       )}
     </div>
   )

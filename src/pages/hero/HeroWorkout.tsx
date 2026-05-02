@@ -4,7 +4,6 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import type { Bundle, BundleExercise } from '../../types'
-import Button from '../../components/ui/Button'
 import Toast, { useToast } from '../../components/ui/Toast'
 
 interface LocalSet {
@@ -24,8 +23,6 @@ interface LastSet {
 
 // exerciseId → ordered array of last session sets
 type LastSessionData = Record<string, LastSet[]>
-
-const COL = '28px 1fr 1fr 44px'
 
 // bundleId is passed as prop by HeroLayout (derived via matchPath — no Route/useParams needed)
 export default function HeroWorkout({ bundleId }: { bundleId: string | null }) {
@@ -216,23 +213,23 @@ export default function HeroWorkout({ bundleId }: { bundleId: string | null }) {
   }))
 
   return (
-    <div className="pb-40 max-w-lg mx-auto">
+    <div style={{ paddingBottom: 120, maxWidth: 700, margin: '0 auto' }}>
       <Toast toast={toast} />
 
       {/* Header */}
-      <div className="px-5 pt-6 pb-4 flex items-center gap-4">
+      <div style={{ padding: '24px 16px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
         <button
           onClick={() => navigate('/hero')}
-          className="w-10 h-10 rounded-[10px] border border-[#333] flex items-center justify-center text-[#888] hover:text-white hover:border-[#555] transition-all shrink-0"
+          style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid var(--border2)', background: 'var(--lift2)', color: 'var(--text2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}
         >←</button>
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="w-4 h-4 rounded-full shrink-0" style={{ background: bundle.color }} />
-          <div className="min-w-0">
-            <h1 className="font-[Bebas_Neue] text-4xl text-white tracking-wide leading-none truncate">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+          <div style={{ width: 14, height: 14, borderRadius: '50%', flexShrink: 0, background: bundle.color }} />
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 32, letterSpacing: 3, color: 'var(--text)', margin: 0, lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {bundle.name}
             </h1>
             {logDate !== today && (
-              <p className="text-[#c8ff00] font-[DM_Mono] text-[10px] tracking-[1px] mt-0.5">
+              <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--accent)', marginTop: 2, letterSpacing: 1 }}>
                 Logging for {new Date(logDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </p>
             )}
@@ -241,19 +238,22 @@ export default function HeroWorkout({ bundleId }: { bundleId: string | null }) {
       </div>
 
       {/* Exercise cards */}
-      <div className="px-5 space-y-4 mt-2">
+      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {exerciseGroups.map(({ be, sets: exSets }) => {
           const lastSets = lastSessionData[be.exercise_id] ?? []
+          const anyDone = exSets.some(s => s.done)
 
           return (
-            <div key={be.id} className="ex-card">
+            <div key={be.id} className={`ex-card${anyDone ? ' logged' : ''}`}>
               {/* Exercise name + video */}
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <p className="ex-card-name">{be.exercise?.name}</p>
+              <div className="ex-card-header">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p className="ex-card-name">{be.exercise?.name}</p>
+                </div>
                 {be.exercise?.video_url && (
                   <a
                     href={be.exercise.video_url} target="_blank" rel="noreferrer"
-                    className="shrink-0 text-sm text-[#3d9fff] border border-[#3d9fff]/30 px-3 py-1.5 rounded-[100px] hover:bg-[#3d9fff]/10 transition-all"
+                    style={{ flexShrink: 0, fontSize: 12, color: 'var(--blue)', border: '1px solid rgba(61,159,255,0.3)', padding: '6px 12px', borderRadius: 100, textDecoration: 'none' }}
                   >
                     ▶ Video
                   </a>
@@ -272,89 +272,92 @@ export default function HeroWorkout({ bundleId }: { bundleId: string | null }) {
                 </div>
               )}
 
-              {/* Column headers */}
-              <div className="grid gap-2 mb-1 px-1" style={{ gridTemplateColumns: COL }}>
-                <span className="set-col-header">#</span>
-                <span className="set-col-header">KG</span>
-                <span className="set-col-header">REPS</span>
-                <span className="set-col-header">✓</span>
-              </div>
+              {/* Set input area */}
+              <div className="log-body">
+                {/* Column headers */}
+                <div className="set-labels">
+                  <span className="input-label">#</span>
+                  <span className="input-label">KG</span>
+                  <span className="input-label">REPS</span>
+                  <span className="input-label">✓</span>
+                </div>
 
-              {/* Set rows */}
-              <div className="space-y-2">
-                {exSets.map((set, i) => {
-                  const globalIdx = sets.indexOf(set)
-                  const lastSet = lastSets[i] // same index = same set number
-                  const cw = parseFloat(set.weight) || 0
-                  const cr = parseInt(set.reps)    || 0
-                  const lw = lastSet?.weight ?? 0
-                  const lr = lastSet?.reps   ?? 0
-                  // Green only when genuinely beating the previous session
-                  const weightPR = !!set.weight && lw > 0 && cw > lw
-                  const repsPR   = !!set.reps   && lr > 0 && cr > lr && cw >= lw
+                {/* Set rows */}
+                <div className="sets-grid">
+                  {exSets.map((set, i) => {
+                    const globalIdx = sets.indexOf(set)
+                    const lastSet = lastSets[i]
+                    const cw = parseFloat(set.weight) || 0
+                    const cr = parseInt(set.reps)    || 0
+                    const lw = lastSet?.weight ?? 0
+                    const lr = lastSet?.reps   ?? 0
+                    const weightPR = !!set.weight && lw > 0 && cw > lw
+                    const repsPR   = !!set.reps   && lr > 0 && cr > lr && cw >= lw
+                    const isPR = weightPR || repsPR
 
-                  return (
-                    <div key={i} className={`set-row${set.done ? ' done' : ''}`}>
-                      <span className="set-num">{set.set_number}</span>
+                    return (
+                      <div key={i} className={`set-row${isPR ? ' pr-row' : ''}`}>
+                        <span className={`set-num${isPR ? ' pr' : ''}`}>{set.set_number}</span>
 
-                      {/* KG — pr > filled > empty */}
-                      <input
-                        type="number" min={0} step={0.5}
-                        placeholder={lw ? String(lw) : '—'}
-                        value={set.weight}
-                        onChange={e => updateSet(globalIdx, 'weight', e.target.value)}
-                        className={`set-input${weightPR ? ' pr' : set.weight ? ' filled' : ''}`}
-                      />
+                        <input
+                          type="number" min={0} step={0.5}
+                          placeholder={lw ? String(lw) : '—'}
+                          value={set.weight}
+                          onChange={e => updateSet(globalIdx, 'weight', e.target.value)}
+                          className={`set-input${weightPR ? ' pr' : set.weight ? ' filled' : ''}`}
+                        />
 
-                      {/* REPS — pr > filled > empty */}
-                      <input
-                        type="number" min={0}
-                        placeholder={lr ? String(lr) : '—'}
-                        value={set.reps}
-                        onChange={e => updateSet(globalIdx, 'reps', e.target.value)}
-                        className={`set-input${repsPR ? ' pr' : set.reps ? ' filled' : ''}`}
-                      />
+                        <input
+                          type="number" min={0}
+                          placeholder={lr ? String(lr) : '—'}
+                          value={set.reps}
+                          onChange={e => updateSet(globalIdx, 'reps', e.target.value)}
+                          className={`set-input${repsPR ? ' pr' : set.reps ? ' filled' : ''}`}
+                        />
 
-                      {/* Done */}
-                      <button
-                        onClick={() => updateSet(globalIdx, 'done', !set.done)}
-                        className={`set-check${set.done ? ' done' : ''}`}
-                      >
-                        {set.done ? '✓' : ''}
-                      </button>
-                    </div>
-                  )
-                })}
+                        <button
+                          onClick={() => updateSet(globalIdx, 'done', !set.done)}
+                          className={`set-check${set.done ? ' done' : ''}`}
+                        >
+                          {set.done ? '✓' : ''}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Notes per exercise — hidden if no notes, shown inline */}
               </div>
             </div>
           )
         })}
       </div>
 
-      {/* Notes */}
-      <div className="px-5 mt-8 space-y-3">
-        <label className="text-[#555] text-sm font-bold uppercase tracking-wider">Session Notes</label>
+      {/* Session notes */}
+      <div style={{ padding: '16px 16px 0' }}>
+        <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--text3)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>
+          Session Notes
+        </p>
         <textarea
           rows={3}
           value={notes}
           onChange={e => { setNotes(e.target.value); saveDraft(sets, e.target.value) }}
           placeholder="How did it feel? Any PRs?"
-          className="w-full px-5 py-4 bg-[#111] border border-[#222] rounded-[14px] text-white placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00] resize-none"
-          style={{ fontSize: 15 }}
+          className="notes-input"
         />
       </div>
 
       {/* Finish — fixed bottom */}
-      <div className="fixed bottom-20 left-0 right-0 px-5 pt-8 pb-2 bg-gradient-to-t from-[#080808] via-[#080808]/90 to-transparent">
-        <div className="max-w-lg mx-auto">
-          <Button
-            className="w-full"
+      <div style={{ position: 'fixed', bottom: 72, left: 0, right: 0, padding: '24px 16px 8px', background: 'linear-gradient(to top, var(--bg) 60%, transparent)' }}>
+        <div style={{ maxWidth: 700, margin: '0 auto' }}>
+          <button
             onClick={() => saveSession.mutate()}
             disabled={saveSession.isPending || saved}
-            size="lg"
+            className="save-btn"
+            style={{ width: '100%', justifyContent: 'center', fontSize: 12, letterSpacing: 3, opacity: (saveSession.isPending || saved) ? 0.6 : 1 }}
           >
-            {saved ? '✓ Session Saved!' : saveSession.isPending ? 'Saving...' : 'Finish Session'}
-          </Button>
+            {saved ? '✓ SESSION SAVED!' : saveSession.isPending ? 'SAVING...' : 'FINISH SESSION'}
+          </button>
         </div>
       </div>
     </div>

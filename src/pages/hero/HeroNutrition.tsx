@@ -6,7 +6,6 @@ import type { NutritionLog, NutritionIngredient, NutritionTotals } from '../../t
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Modal from '../../components/ui/Modal'
-import Spinner from '../../components/ui/Spinner'
 
 const TODAY = new Date().toISOString().slice(0, 10)
 
@@ -146,7 +145,11 @@ export default function HeroNutrition() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['nutrition-today', profile?.id] }),
   })
 
-  if (isLoading) return <div className="flex items-center justify-center h-screen"><Spinner size={32} className="text-[#c8ff00]" /></div>
+  if (isLoading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+      <p style={{ fontFamily: 'DM Mono, monospace', color: 'var(--text3)', fontSize: 13, letterSpacing: 2 }}>LOADING...</p>
+    </div>
+  )
 
   return (
     <div className="p-5 max-w-lg mx-auto space-y-6">
@@ -191,7 +194,7 @@ export default function HeroNutrition() {
         />
         {aiError && <p className="text-[#ff3d3d] text-xs">{aiError}</p>}
         <Button onClick={analyse} disabled={analysing || !input.trim()} className="w-full">
-          {analysing ? <><Spinner size={16} /> Analysing...</> : '🔍 Calculate Nutrition'}
+          {analysing ? 'Analysing...' : '🔍 Calculate Nutrition'}
         </Button>
       </Card>
 
