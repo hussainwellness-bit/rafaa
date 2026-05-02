@@ -158,7 +158,7 @@ function PlanEditor({ planKey, form, onChange }: {
   return (
     <div className={`rounded-[16px] border transition-all ${form.enabled ? 'border-[#1e1e1e]' : 'border-[#111] opacity-60'} bg-[#111]`}>
       {/* Plan header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#1a1a1a]">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e1e]">
         <div className="flex items-center gap-3">
           <span className="font-[Bebas_Neue] tracking-wide" style={{ fontSize: 36, color, lineHeight: 1 }}>
             PLAN {planKey}
@@ -203,7 +203,7 @@ function PlanEditor({ planKey, form, onChange }: {
                 value={form.name}
                 onChange={e => set('name', e.target.value)}
                 placeholder={DEFAULT_PLAN_CONFIG[planKey].name}
-                className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-[#f2f2f2] placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00]/40 font-[DM_Mono] text-[14px]"
+                className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-[#f2f2f2] placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00]/40 font-[DM_Mono] text-[14px]"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -212,7 +212,7 @@ function PlanEditor({ planKey, form, onChange }: {
                 value={form.description}
                 onChange={e => set('description', e.target.value)}
                 placeholder="Optional tagline for this plan"
-                className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-[#f2f2f2] placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00]/40 font-[DM_Mono] text-[14px]"
+                className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-[#f2f2f2] placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00]/40 font-[DM_Mono] text-[14px]"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -222,7 +222,7 @@ function PlanEditor({ planKey, form, onChange }: {
                 value={form.featuresText}
                 onChange={e => set('featuresText', e.target.value)}
                 placeholder={DEFAULT_PLAN_CONFIG[planKey].features.join('\n')}
-                className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-[#f2f2f2] placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00]/40 font-[DM_Mono] text-[13px] resize-none"
+                className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-[#f2f2f2] placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00]/40 font-[DM_Mono] text-[13px] resize-none"
               />
             </div>
           </div>
@@ -320,7 +320,7 @@ function PlanEditor({ planKey, form, onChange }: {
                     value={form.discount_label}
                     onChange={e => set('discount_label', e.target.value)}
                     placeholder='e.g. "Ramadan Special" or "Launch Offer"'
-                    className="w-full px-3 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-[#f2f2f2] placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00]/40 font-[DM_Mono] text-[13px]"
+                    className="w-full px-3 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-[#f2f2f2] placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00]/40 font-[DM_Mono] text-[13px]"
                   />
                 </div>
               </div>
@@ -477,7 +477,7 @@ export default function CoachPlanSettings() {
               value={years}
               onChange={e => setYears(e.target.value)}
               placeholder="e.g. 5"
-              className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-[#f2f2f2] placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00]/40 font-[DM_Mono] text-[14px]"
+              className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-[#f2f2f2] placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00]/40 font-[DM_Mono] text-[14px]"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -486,7 +486,7 @@ export default function CoachPlanSettings() {
               value={specialty}
               onChange={e => setSpecialty(e.target.value)}
               placeholder="e.g. Fat Loss · Muscle Building"
-              className={`w-full px-4 py-3 bg-[#1e1e1e] rounded-[10px] text-[#f2f2f2] placeholder:text-[#333] focus:outline-none font-[DM_Mono] text-[14px] border ${
+              className={`w-full px-4 py-3 bg-[#1e1e1e] rounded-[10px] text-[#f2f2f2] placeholder:text-[#555] focus:outline-none font-[DM_Mono] text-[14px] border ${
                 specialty.trim().length === 0 ? 'border-[#ff3d3d]/50 focus:border-[#ff3d3d]' : 'border-[#2a2a2a] focus:border-[#c8ff00]/40'
               }`}
             />
@@ -500,13 +500,13 @@ export default function CoachPlanSettings() {
             value={bio}
             onChange={e => setBio(e.target.value)}
             placeholder="Tell heroes about yourself and your coaching approach..."
-            className={`w-full px-4 py-3 bg-[#1e1e1e] rounded-[10px] text-[#f2f2f2] placeholder:text-[#333] focus:outline-none font-[DM_Mono] text-[13px] resize-none border ${
+            className={`w-full px-4 py-3 bg-[#1e1e1e] rounded-[10px] text-[#f2f2f2] placeholder:text-[#555] focus:outline-none font-[DM_Mono] text-[13px] resize-none border ${
               bio.trim().length === 0 ? 'border-[#ff3d3d]/50 focus:border-[#ff3d3d]' : 'border-[#2a2a2a] focus:border-[#c8ff00]/40'
             }`}
           />
         </div>
 
-        <div className="flex items-center justify-between py-2 border-t border-[#1a1a1a]">
+        <div className="flex items-center justify-between py-2 border-t border-[#1e1e1e]">
           <div>
             <p className="text-white text-sm">Accepting New Heroes</p>
             <p className="text-[#555] text-xs mt-0.5">When off, your card shows "Full" on the discovery page</p>

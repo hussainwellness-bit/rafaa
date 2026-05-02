@@ -30,8 +30,8 @@ function SubmittedScreen() {
           </p>
         </div>
 
-        <div className="bg-[#0e0e0e] border border-[#1a1a1a] rounded-[16px] p-6 text-left space-y-3">
-          <p className="text-[#888] text-xs font-bold uppercase tracking-widest">What happens next</p>
+        <div className="bg-[#0e0e0e] border border-[#1e1e1e] rounded-[16px] p-6 text-left space-y-3">
+          <p className="text-[#aaa] text-xs font-bold uppercase tracking-widest">What happens next</p>
           {[
             'We review your application',
             'You receive an approval notification',
@@ -128,7 +128,7 @@ export default function CoachApply() {
 
           {/* Personal Info */}
           <div className="space-y-4">
-            <p className="text-[#888] text-xs font-bold uppercase tracking-widest">Personal Info</p>
+            <p className="text-[#aaa] text-xs font-bold uppercase tracking-widest">Personal Info</p>
             <Input label="Full Name" required value={form.full_name} onChange={e => set('full_name', e.target.value)} />
             <Input label="Email" type="email" required value={form.email} onChange={e => set('email', e.target.value)} />
             <Input label="Phone" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+966..." />
@@ -136,7 +136,7 @@ export default function CoachApply() {
 
           {/* Professional Info */}
           <div className="space-y-4">
-            <p className="text-[#888] text-xs font-bold uppercase tracking-widest">Professional Info</p>
+            <p className="text-[#aaa] text-xs font-bold uppercase tracking-widest">Professional Info</p>
             <Input
               label="Specialty"
               required
@@ -155,21 +155,21 @@ export default function CoachApply() {
               placeholder="e.g. 5"
             />
             <div className="flex flex-col gap-2">
-              <label className="text-[15px] text-[#888] font-semibold">Bio <span className="text-[#ff3d3d]">*</span></label>
+              <label className="text-[15px] text-[#aaa] font-semibold">Bio <span className="text-[#ff3d3d]">*</span></label>
               <textarea
                 required
                 rows={4}
                 value={form.bio}
                 onChange={e => set('bio', e.target.value)}
                 placeholder="Tell heroes about yourself and your coaching approach..."
-                className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#333] rounded-[14px] text-white text-[15px] placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] resize-none transition-colors"
+                className="w-full px-5 py-4 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[14px] text-white text-[15px] placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] resize-none transition-colors"
               />
             </div>
           </div>
 
           {/* Subscription Plan */}
           <div className="space-y-4">
-            <p className="text-[#888] text-xs font-bold uppercase tracking-widest">Subscription Plan</p>
+            <p className="text-[#aaa] text-xs font-bold uppercase tracking-widest">Subscription Plan</p>
             <div className="grid grid-cols-3 gap-3">
               {PLANS.map(plan => {
                 const selected = form.subscription_plan === plan.id
@@ -198,7 +198,7 @@ export default function CoachApply() {
 
           {/* Consent */}
           <div className="space-y-3">
-            <p className="text-[#888] text-xs font-bold uppercase tracking-widest">Consent</p>
+            <p className="text-[#aaa] text-xs font-bold uppercase tracking-widest">Consent</p>
             {[
               { key: 'terms' as const, label: 'I have read and agree to the ', linkLabel: 'Terms & Conditions', to: '/terms' },
               { key: 'privacy' as const, label: 'I have read and agree to the ', linkLabel: 'Privacy Policy', to: '/privacy' },

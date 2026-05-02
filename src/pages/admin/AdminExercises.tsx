@@ -43,7 +43,7 @@ function VideoCell({ ex, onSaved }: { ex: Exercise; onSaved: () => void }) {
           onChange={e => setUrl(e.target.value)}
           placeholder="https://..."
           onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
-          className="w-48 px-2 py-1 bg-[#1a1a1a] border border-[#c8ff00]/40 rounded-[6px] text-white text-xs focus:outline-none"
+          className="w-48 px-2 py-1 bg-[#1e1e1e] border border-[#c8ff00]/40 rounded-[6px] text-white text-xs focus:outline-none"
         />
         <button onClick={save} disabled={saving}
           className="text-xs text-[#c8ff00] px-2 py-1 border border-[#c8ff00]/30 rounded-[6px] hover:bg-[#c8ff00]/10">
@@ -74,7 +74,7 @@ function VideoCell({ ex, onSaved }: { ex: Exercise; onSaved: () => void }) {
   return (
     <button
       onClick={() => setEditing(true)}
-      className="text-xs text-[#444] border border-[#333] px-2.5 py-1 rounded-[100px] hover:border-[#555] hover:text-[#888] transition-all"
+      className="text-xs text-[#444] border border-[#2a2a2a] px-2.5 py-1 rounded-[100px] hover:border-[#555] hover:text-[#aaa] transition-all"
     >
       + Video
     </button>
@@ -110,14 +110,14 @@ function ExerciseForm({ initial, onSubmit, loading, error }: {
         options={[{ value: 'Compound', label: 'Compound' }, { value: 'Isolation', label: 'Isolation' }]}
       />
       <div>
-        <label className="text-sm text-[#888] font-medium block mb-2">Muscle Groups</label>
+        <label className="text-sm text-[#aaa] font-medium block mb-2">Muscle Groups</label>
         <div className="flex flex-wrap gap-2">
           {MUSCLE_GROUPS.map(m => (
             <button key={m} type="button" onClick={() => toggleMuscle(m)}
               className={`px-3 py-1 rounded-[100px] text-xs border transition-all ${
                 form.muscle_groups?.includes(m)
                   ? 'bg-[#c8ff00]/10 border-[#c8ff00]/40 text-[#c8ff00]'
-                  : 'border-[#333] text-[#555] hover:border-[#555]'
+                  : 'border-[#2a2a2a] text-[#555] hover:border-[#555]'
               }`}
             >
               {m}
@@ -126,18 +126,18 @@ function ExerciseForm({ initial, onSubmit, loading, error }: {
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className="text-sm text-[#888] font-medium">Video URL</label>
+        <label className="text-sm text-[#aaa] font-medium">Video URL</label>
         <input
           value={form.video_url ?? ''}
           onChange={e => setField('video_url', e.target.value)}
           placeholder="https://youtube.com/watch?v=..."
-          className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[12px] text-white placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] text-[15px]"
+          className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] text-[15px]"
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className="text-sm text-[#888] font-medium">Instructions</label>
+        <label className="text-sm text-[#aaa] font-medium">Instructions</label>
         <textarea rows={3} value={form.instructions ?? ''} onChange={e => setField('instructions', e.target.value)}
-          className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[12px] text-white placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] resize-none" />
+          className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] resize-none" />
       </div>
       {error && <p className="text-[#ff3d3d] text-sm">{error}</p>}
       <Button type="submit" disabled={loading} className="w-full">
@@ -212,7 +212,7 @@ export default function AdminExercises() {
         placeholder="Search exercises or muscle groups..."
         value={search}
         onChange={e => setSearch(e.target.value)}
-        className="w-full px-4 py-3 bg-[#111] border border-[#222] rounded-[12px] text-white placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00]"
+        className="w-full px-4 py-3 bg-[#111] border border-[#1e1e1e] rounded-[12px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00]"
       />
 
       <div className="grid gap-2">
@@ -239,7 +239,7 @@ export default function AdminExercises() {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => { setEditEx(ex); setShowAdd(true) }}
-                className="text-xs text-[#555] hover:text-white px-3 py-1.5 border border-[#333] rounded-[100px] transition-colors"
+                className="text-xs text-[#555] hover:text-white px-3 py-1.5 border border-[#2a2a2a] rounded-[100px] transition-colors"
               >
                 Edit
               </button>

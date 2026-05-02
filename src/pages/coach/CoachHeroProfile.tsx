@@ -78,8 +78,8 @@ function calcPlanEnd(start: string, billing: PlanBilling): string {
 
 function Section({ title, children, last = false }: { title: string; children: React.ReactNode; last?: boolean }) {
   return (
-    <div className={`${!last ? 'border-b border-[#1a1a1a] pb-6 mb-6' : 'pb-4'}`}>
-      <p className="text-[#888] text-xs font-bold uppercase tracking-wider mb-4">{title}</p>
+    <div className={`${!last ? 'border-b border-[#1e1e1e] pb-6 mb-6' : 'pb-4'}`}>
+      <p className="text-[#aaa] text-xs font-bold uppercase tracking-wider mb-4">{title}</p>
       {children}
     </div>
   )
@@ -178,24 +178,24 @@ function EditHeroPanel({ hero, open, onClose, showToast }: {
           <div className="grid grid-cols-2 gap-3">
             <Input label="Full Name" value={form.full_name} onChange={e => set('full_name', e.target.value)} className="col-span-2" />
             <div className="col-span-2 flex flex-col gap-2">
-              <label className="text-[15px] text-[#888] font-semibold">Email</label>
+              <label className="text-[15px] text-[#aaa] font-semibold">Email</label>
               <input
                 value={form.email}
                 onChange={e => set('email', e.target.value)}
                 disabled={hero.is_physical}
                 title={hero.is_physical ? 'Physical hero — no login' : undefined}
-                className={`w-full px-5 py-4 bg-[#1a1a1a] border border-[#333] rounded-[14px] text-[15px] font-[DM_Mono] focus:outline-none focus:border-[#c8ff00] transition-colors ${hero.is_physical ? 'opacity-40 cursor-not-allowed text-[#555]' : 'text-white'}`}
+                className={`w-full px-5 py-4 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[14px] text-[15px] font-[DM_Mono] focus:outline-none focus:border-[#c8ff00] transition-colors ${hero.is_physical ? 'opacity-40 cursor-not-allowed text-[#555]' : 'text-white'}`}
               />
               {hero.is_physical && <p className="text-xs text-[#444]">Physical hero — no app login</p>}
             </div>
             <Input label="Phone" value={form.phone} onChange={e => set('phone', e.target.value)} />
             <Input label="Date of Birth" type="date" value={form.date_of_birth} onChange={e => set('date_of_birth', e.target.value)} />
             <div className="flex flex-col gap-2">
-              <label className="text-[15px] text-[#888] font-semibold">Gender</label>
+              <label className="text-[15px] text-[#aaa] font-semibold">Gender</label>
               <select
                 value={form.gender}
                 onChange={e => set('gender', e.target.value)}
-                className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#333] rounded-[14px] text-white text-[15px] focus:outline-none focus:border-[#c8ff00]"
+                className="w-full px-5 py-4 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[14px] text-white text-[15px] focus:outline-none focus:border-[#c8ff00]"
               >
                 <option value="">Prefer not to say</option>
                 <option value="male">Male</option>
@@ -204,10 +204,10 @@ function EditHeroPanel({ hero, open, onClose, showToast }: {
               </select>
             </div>
             <div className="col-span-2 flex flex-col gap-2">
-              <label className="text-[15px] text-[#888] font-semibold">Internal Notes</label>
+              <label className="text-[15px] text-[#aaa] font-semibold">Internal Notes</label>
               <textarea
                 rows={2} value={form.notes} onChange={e => set('notes', e.target.value)}
-                className="w-full px-5 py-3 bg-[#1a1a1a] border border-[#333] rounded-[14px] text-white text-[15px] placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] resize-none"
+                className="w-full px-5 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[14px] text-white text-[15px] placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] resize-none"
               />
             </div>
           </div>
@@ -217,23 +217,23 @@ function EditHeroPanel({ hero, open, onClose, showToast }: {
         <Section title="Plan Details">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-2">
-              <label className="text-[15px] text-[#888] font-semibold">Plan Type</label>
+              <label className="text-[15px] text-[#aaa] font-semibold">Plan Type</label>
               <select value={form.plan_type} onChange={e => set('plan_type', e.target.value as PlanType)}
-                className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#333] rounded-[14px] text-white text-[15px] focus:outline-none focus:border-[#c8ff00]">
+                className="w-full px-5 py-4 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[14px] text-white text-[15px] focus:outline-none focus:border-[#c8ff00]">
                 <option value="A">Plan A — Fixed Tracker</option>
                 <option value="B">Plan B — Tracker + Journal</option>
                 <option value="C">Plan C — Ultimate</option>
               </select>
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-[15px] text-[#888] font-semibold">Billing Cycle</label>
+              <label className="text-[15px] text-[#aaa] font-semibold">Billing Cycle</label>
               <select
                 value={form.plan_billing}
                 onChange={e => {
                   const billing = e.target.value as PlanBilling
                   setForm(f => ({ ...f, plan_billing: billing, plan_end: calcPlanEnd(f.plan_start, billing) }))
                 }}
-                className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#333] rounded-[14px] text-white text-[15px] focus:outline-none focus:border-[#c8ff00]"
+                className="w-full px-5 py-4 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[14px] text-white text-[15px] focus:outline-none focus:border-[#c8ff00]"
               >
                 <option value="monthly">Monthly — {PLAN_PRICES[form.plan_type].monthly} SAR</option>
                 <option value="semi_annual">6 Months — {PLAN_PRICES[form.plan_type].semi_annual} SAR</option>
@@ -243,7 +243,7 @@ function EditHeroPanel({ hero, open, onClose, showToast }: {
             <Input label="Plan Start" type="date" value={form.plan_start}
               onChange={e => setForm(f => ({ ...f, plan_start: e.target.value, plan_end: calcPlanEnd(e.target.value, f.plan_billing) }))} />
             <Input label="Plan End" type="date" value={form.plan_end} onChange={e => set('plan_end', e.target.value)} />
-            <div className="col-span-2 flex items-center justify-between py-3 px-4 bg-[#1a1a1a] rounded-[12px] border border-[#333]">
+            <div className="col-span-2 flex items-center justify-between py-3 px-4 bg-[#1e1e1e] rounded-[12px] border border-[#2a2a2a]">
               <div>
                 <p className="text-white text-sm font-semibold">Active Status</p>
                 <p className="text-[#555] text-xs mt-0.5">{form.is_active ? 'Hero can access the app' : 'Hero is deactivated'}</p>
@@ -262,9 +262,9 @@ function EditHeroPanel({ hero, open, onClose, showToast }: {
         <Section title="Body & Goals">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-2">
-              <label className="text-[15px] text-[#888] font-semibold">Goal</label>
+              <label className="text-[15px] text-[#aaa] font-semibold">Goal</label>
               <select value={form.goal} onChange={e => set('goal', e.target.value as Goal)}
-                className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#333] rounded-[14px] text-white text-[15px] focus:outline-none focus:border-[#c8ff00]">
+                className="w-full px-5 py-4 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[14px] text-white text-[15px] focus:outline-none focus:border-[#c8ff00]">
                 <option value="cutting">Cutting</option>
                 <option value="bulking">Bulking</option>
                 <option value="maintenance">Maintenance</option>
@@ -284,7 +284,7 @@ function EditHeroPanel({ hero, open, onClose, showToast }: {
           ) : (
             <div className="space-y-3">
               {/* Steps — special: has a steps target input */}
-              <div className="flex items-center justify-between py-2.5 px-4 bg-[#1a1a1a] rounded-[10px] border border-[#222]">
+              <div className="flex items-center justify-between py-2.5 px-4 bg-[#1e1e1e] rounded-[10px] border border-[#1e1e1e]">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => set('journal_config', { ...form.journal_config, steps: !form.journal_config.steps })}
@@ -300,14 +300,14 @@ function EditHeroPanel({ hero, open, onClose, showToast }: {
                     value={form.steps_target}
                     onChange={e => set('steps_target', e.target.value)}
                     placeholder="10000"
-                    className="w-28 px-3 py-1.5 bg-[#111] border border-[#333] rounded-[8px] text-white text-sm text-center font-[DM_Mono] focus:outline-none focus:border-[#c8ff00]"
+                    className="w-28 px-3 py-1.5 bg-[#111] border border-[#2a2a2a] rounded-[8px] text-white text-sm text-center font-[DM_Mono] focus:outline-none focus:border-[#c8ff00]"
                   />
                 )}
               </div>
 
               {/* Other journal fields */}
               {journalFields.map(field => (
-                <div key={field} className="flex items-center justify-between py-2.5 px-4 bg-[#1a1a1a] rounded-[10px] border border-[#222]">
+                <div key={field} className="flex items-center justify-between py-2.5 px-4 bg-[#1e1e1e] rounded-[10px] border border-[#1e1e1e]">
                   <span className="text-white text-sm capitalize">{field.replace('_', ' ')}</span>
                   <button
                     onClick={() => set('journal_config', { ...form.journal_config, [field]: !form.journal_config[field] })}
@@ -351,14 +351,14 @@ function EditHeroPanel({ hero, open, onClose, showToast }: {
         <Section title="Settings" last>
           <div className="space-y-3">
             <div className="flex flex-col gap-2">
-              <label className="text-[15px] text-[#888] font-semibold">Ghost Numbers</label>
+              <label className="text-[15px] text-[#aaa] font-semibold">Ghost Numbers</label>
               <div className="flex gap-2">
                 {(['last', 'best'] as GhostPreference[]).map(pref => (
                   <button
                     key={pref}
                     onClick={() => set('ghost_preference', pref)}
                     className={`flex-1 py-2.5 rounded-[100px] text-sm font-semibold border transition-all capitalize ${
-                      form.ghost_preference === pref ? 'bg-[#c8ff00] border-[#c8ff00] text-[#080808]' : 'border-[#333] text-[#555] hover:border-[#555]'
+                      form.ghost_preference === pref ? 'bg-[#c8ff00] border-[#c8ff00] text-[#080808]' : 'border-[#2a2a2a] text-[#555] hover:border-[#555]'
                     }`}
                   >
                     {pref === 'last' ? 'Last Session' : 'Personal Best'}
@@ -367,7 +367,7 @@ function EditHeroPanel({ hero, open, onClose, showToast }: {
               </div>
             </div>
 
-            <div className="flex items-center justify-between py-2.5 px-4 bg-[#1a1a1a] rounded-[10px] border border-[#222]">
+            <div className="flex items-center justify-between py-2.5 px-4 bg-[#1e1e1e] rounded-[10px] border border-[#1e1e1e]">
               <div>
                 <p className="text-white text-sm font-semibold">Physical Hero</p>
                 <p className="text-[#555] text-xs mt-0.5">No app access — coach logs everything</p>
@@ -503,7 +503,7 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE, coachId }: {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-[#888] text-sm font-medium uppercase tracking-wider">Add Exercises</h4>
+        <h4 className="text-[#aaa] text-sm font-medium uppercase tracking-wider">Add Exercises</h4>
         <button onClick={() => { setShowCustom(v => !v); setCustomErr('') }}
           className="text-xs text-[#c8ff00] border border-[#c8ff00]/30 px-3 py-1.5 rounded-[100px] hover:bg-[#c8ff00]/10 transition-all">
           + Custom
@@ -511,28 +511,28 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE, coachId }: {
       </div>
 
       {showCustom && (
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-[12px] p-4 mb-4 space-y-2">
-          <p className="text-[#888] text-[10px] font-bold uppercase tracking-widest mb-1">New Custom Exercise</p>
+        <div className="bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] p-4 mb-4 space-y-2">
+          <p className="text-[#aaa] text-[10px] font-bold uppercase tracking-widest mb-1">New Custom Exercise</p>
           <input placeholder="Exercise name *" value={customForm.name} onChange={e => setCustomForm(f => ({ ...f, name: e.target.value }))}
-            className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-[8px] text-white text-sm placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00]" />
+            className="w-full px-3 py-2 bg-[#111] border border-[#2a2a2a] rounded-[8px] text-white text-sm placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00]" />
           <input placeholder="Muscle groups (e.g. Chest, Shoulders)" value={customForm.muscle_groups} onChange={e => setCustomForm(f => ({ ...f, muscle_groups: e.target.value }))}
-            className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-[8px] text-white text-sm placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00]" />
+            className="w-full px-3 py-2 bg-[#111] border border-[#2a2a2a] rounded-[8px] text-white text-sm placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00]" />
           <div className="flex gap-2">
             {(['Compound', 'Isolation'] as ExerciseKind[]).map(k => (
               <button key={k} type="button" onClick={() => setCustomForm(f => ({ ...f, kind: k }))}
-                className={`flex-1 py-1.5 rounded-[100px] text-xs font-semibold border transition-all ${customForm.kind === k ? 'bg-[#c8ff00] border-[#c8ff00] text-[#080808]' : 'border-[#333] text-[#555]'}`}>
+                className={`flex-1 py-1.5 rounded-[100px] text-xs font-semibold border transition-all ${customForm.kind === k ? 'bg-[#c8ff00] border-[#c8ff00] text-[#080808]' : 'border-[#2a2a2a] text-[#555]'}`}>
                 {k}
               </button>
             ))}
           </div>
           <input placeholder="Video URL (optional)" value={customForm.video_url} onChange={e => setCustomForm(f => ({ ...f, video_url: e.target.value }))}
-            className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-[8px] text-white text-sm placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00]" />
+            className="w-full px-3 py-2 bg-[#111] border border-[#2a2a2a] rounded-[8px] text-white text-sm placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00]" />
           <textarea rows={2} placeholder="Instructions (optional)" value={customForm.instructions} onChange={e => setCustomForm(f => ({ ...f, instructions: e.target.value }))}
-            className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-[8px] text-white text-sm placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] resize-none" />
+            className="w-full px-3 py-2 bg-[#111] border border-[#2a2a2a] rounded-[8px] text-white text-sm placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] resize-none" />
           {customErr && <p className="text-[#ff3d3d] text-xs">{customErr}</p>}
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={() => { setShowCustom(false); setCustomErr('') }}
-              className="flex-1 py-2.5 text-xs text-[#555] border border-[#333] rounded-[10px] hover:text-white transition-colors">
+              className="flex-1 py-2.5 text-xs text-[#555] border border-[#2a2a2a] rounded-[10px] hover:text-white transition-colors">
               Cancel
             </button>
             <button type="button" onClick={createCustom} disabled={customSaving}
@@ -544,14 +544,14 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE, coachId }: {
       )}
 
       <input type="text" placeholder="Search exercises..." value={search} onChange={e => setSearch(e.target.value)}
-        className="w-full px-4 py-2.5 bg-[#1a1a1a] border border-[#333] rounded-[10px] text-white placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] text-sm mb-3" />
+        className="w-full px-4 py-2.5 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] text-sm mb-3" />
 
-      <div className="max-h-[380px] overflow-y-auto border border-[#1a1a1a] rounded-[10px]">
+      <div className="max-h-[380px] overflow-y-auto border border-[#1e1e1e] rounded-[10px]">
         {[...grouped.entries()].map(([group, exs]) => (
-          <div key={group} className="border-b border-[#1a1a1a] last:border-0">
+          <div key={group} className="border-b border-[#1e1e1e] last:border-0">
             <button onClick={() => toggleGroup(group)}
-              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#1a1a1a] transition-all text-left">
-              <span className="text-[#888] text-xs font-bold uppercase tracking-wider">
+              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#1e1e1e] transition-all text-left">
+              <span className="text-[#aaa] text-xs font-bold uppercase tracking-wider">
                 {group} <span className="text-[#444]">({exs.length})</span>
               </span>
               <span className="text-[#444] text-xs">{openGroups.has(group) ? '▼' : '▶'}</span>
@@ -562,7 +562,7 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE, coachId }: {
                   const already = bundleExercises.some(be => be.exercise_id === ex.id)
                   return (
                     <label key={ex.id}
-                      className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-all ${already ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#1a1a1a]'}`}>
+                      className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-all ${already ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#1e1e1e]'}`}>
                       <input type="checkbox" checked={checked.has(ex.id) || already} disabled={already}
                         onChange={() => !already && toggleCheck(ex.id)} className="w-4 h-4 accent-[#c8ff00] cursor-pointer" />
                       <span className="text-white text-sm flex-1">{ex.name}</span>
@@ -576,9 +576,9 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE, coachId }: {
         ))}
 
         {/* Custom exercises section */}
-        <div className="border-t border-[#1a1a1a]">
+        <div className="border-t border-[#1e1e1e]">
           <button onClick={() => toggleGroup('__custom__')}
-            className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#1a1a1a] transition-all text-left">
+            className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#1e1e1e] transition-all text-left">
             <span className="text-[#c8ff00]/60 text-xs font-bold uppercase tracking-wider">
               // CUSTOM EXERCISES <span className="text-[#444]">({customExercises.length})</span>
             </span>
@@ -593,7 +593,7 @@ function ExercisePicker({ bundleId, bundleExercises, refetchBE, coachId }: {
                 const already = bundleExercises.some(be => be.exercise_id === ex.id)
                 return (
                   <label key={ex.id}
-                    className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-all ${already ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#1a1a1a]'}`}>
+                    className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-all ${already ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#1e1e1e]'}`}>
                     <input type="checkbox" checked={checked.has(ex.id) || already} disabled={already}
                       onChange={() => !already && toggleCheck(ex.id)} className="w-4 h-4 accent-[#c8ff00] cursor-pointer" />
                     <div className="flex-1 min-w-0">
@@ -658,7 +658,7 @@ function ExerciseRow({ be, idx, dragIdx, overIdx, onDragStart, onDragEnd, onDrag
           ? 'opacity-40 bg-[#2a2a2a]'
           : overIdx === idx && dragIdx !== null
           ? 'bg-[#c8ff00]/10 border border-[#c8ff00]/30'
-          : 'bg-[#1a1a1a] border border-transparent hover:border-[#333]'
+          : 'bg-[#1e1e1e] border border-transparent hover:border-[#2a2a2a]'
       }`}
     >
       {/* Handle */}
@@ -797,16 +797,16 @@ function BundleBuilderModal({ open, onClose, heroId, bundle, coachId }: {
         <div className="grid grid-cols-2 gap-4">
           <Input label="Bundle Name" required value={name} onChange={e => setName(e.target.value)} placeholder="Upper Destroyer" />
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-[#888] font-medium">Color</label>
+            <label className="text-sm text-[#aaa] font-medium">Color</label>
             <div className="flex items-center gap-3">
-              <input type="color" value={color} onChange={e => setColor(e.target.value)} className="h-12 w-14 rounded-[10px] bg-[#1a1a1a] border border-[#333] cursor-pointer p-1" />
-              <span className="font-[DM_Mono] text-[#888] text-sm">{color}</span>
+              <input type="color" value={color} onChange={e => setColor(e.target.value)} className="h-12 w-14 rounded-[10px] bg-[#1e1e1e] border border-[#2a2a2a] cursor-pointer p-1" />
+              <span className="font-[DM_Mono] text-[#aaa] text-sm">{color}</span>
             </div>
           </div>
           <div className="col-span-2 flex flex-col gap-1.5">
-            <label className="text-sm text-[#888] font-medium">Description</label>
+            <label className="text-sm text-[#aaa] font-medium">Description</label>
             <textarea rows={2} value={desc} onChange={e => setDesc(e.target.value)} placeholder="Optional description..."
-              className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[12px] text-white placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] resize-none text-sm" />
+              className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] resize-none text-sm" />
           </div>
         </div>
         {error && <p className="text-[#ff3d3d] text-sm">{error}</p>}
@@ -815,24 +815,24 @@ function BundleBuilderModal({ open, onClose, heroId, bundle, coachId }: {
         </Button>
 
         {bundle && (
-          <div className="grid grid-cols-2 gap-6 border-t border-[#1a1a1a] pt-5">
+          <div className="grid grid-cols-2 gap-6 border-t border-[#1e1e1e] pt-5">
             <div>
-              <h4 className="text-[#888] text-sm font-medium uppercase tracking-wider mb-2">In Bundle ({bundleExercises.length})</h4>
+              <h4 className="text-[#aaa] text-sm font-medium uppercase tracking-wider mb-2">In Bundle ({bundleExercises.length})</h4>
 
               {/* Apply to All */}
               {bundleExercises.length > 0 && (
-                <div className="flex items-center gap-1.5 mb-3 p-2 bg-[#111] border border-[#222] rounded-[10px]">
+                <div className="flex items-center gap-1.5 mb-3 p-2 bg-[#111] border border-[#1e1e1e] rounded-[10px]">
                   <span className="text-[#444] text-[10px] font-[DM_Mono] shrink-0">ALL</span>
                   <input
                     type="number" min={1} max={20} value={applyAllSets}
                     onChange={e => setApplyAllSets(parseInt(e.target.value) || 3)}
-                    className="w-10 px-1 py-1 bg-[#1a1a1a] border border-[#333] rounded-[6px] text-white text-center text-xs"
+                    className="w-10 px-1 py-1 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[6px] text-white text-center text-xs"
                   />
                   <span className="text-[#444] text-[10px]">×</span>
                   <input
                     type="text" value={applyAllReps}
                     onChange={e => setApplyAllReps(e.target.value)}
-                    className="w-14 px-1 py-1 bg-[#1a1a1a] border border-[#333] rounded-[6px] text-white text-center text-xs"
+                    className="w-14 px-1 py-1 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[6px] text-white text-center text-xs"
                     placeholder="8-10"
                   />
                   <button
@@ -898,7 +898,7 @@ function ScheduleBuilder({ heroId, bundles }: { heroId: string; bundles: Bundle[
           <div key={day} className="flex items-center gap-4">
             <span className="text-[#555] text-sm w-24 font-medium">{day}</span>
             <select value={entry?.bundle_id ?? ''} onChange={e => setDay.mutate({ day_index: idx, bundle_id: e.target.value || null })}
-              className="flex-1 px-4 py-2.5 bg-[#1a1a1a] border border-[#333] rounded-[10px] text-sm focus:outline-none focus:border-[#c8ff00] appearance-none cursor-pointer"
+              className="flex-1 px-4 py-2.5 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[10px] text-sm focus:outline-none focus:border-[#c8ff00] appearance-none cursor-pointer"
               style={{ color: assigned ? assigned.color : '#888' }}>
               <option value="">Rest Day</option>
               {bundles.map(b => <option key={b.id} value={b.id} style={{ color: b.color }}>{b.name}</option>)}
@@ -925,7 +925,7 @@ function LogForHeroModal({ open, onClose, heroName, bundles, heroId }: {
         <div className="space-y-3">
           {bundles.map(b => (
             <button key={b.id} onClick={() => { onClose(); navigate(`/coach/heroes/${heroId}/log/${b.id}`) }}
-              className="w-full flex items-center gap-4 p-4 rounded-[12px] border border-[#222] hover:border-[#333] hover:bg-[#111] transition-all text-left active:scale-[0.98]"
+              className="w-full flex items-center gap-4 p-4 rounded-[12px] border border-[#1e1e1e] hover:border-[#2a2a2a] hover:bg-[#111] transition-all text-left active:scale-[0.98]"
               style={{ borderColor: b.color + '30' }}>
               <div className="w-3 h-3 rounded-full shrink-0" style={{ background: b.color }} />
               <div>
@@ -1248,7 +1248,7 @@ export default function CoachHeroProfile() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-[#111] border border-[#222] rounded-[100px] p-1 w-fit">
+      <div className="flex gap-1 bg-[#111] border border-[#1e1e1e] rounded-[100px] p-1 w-fit">
         {TABS.map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-[100px] text-sm font-medium transition-all ${tab === t ? 'bg-[#c8ff00] text-[#080808]' : 'text-[#555] hover:text-white'}`}>
@@ -1261,7 +1261,7 @@ export default function CoachHeroProfile() {
       {tab === 'Overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <Card className="p-5 space-y-3">
-            <h3 className="text-[#888] text-xs font-medium uppercase tracking-wider">Body Stats</h3>
+            <h3 className="text-[#aaa] text-xs font-medium uppercase tracking-wider">Body Stats</h3>
             {[
               ['Height', hero.height ? `${hero.height} cm` : '—'],
               ['Start Weight', hero.start_weight ? `${hero.start_weight} kg` : '—'],
@@ -1276,7 +1276,7 @@ export default function CoachHeroProfile() {
           </Card>
 
           <Card className="p-5 space-y-3">
-            <h3 className="text-[#888] text-xs font-medium uppercase tracking-wider">Plan Details</h3>
+            <h3 className="text-[#aaa] text-xs font-medium uppercase tracking-wider">Plan Details</h3>
             {[
               ['Plan', `Plan ${hero.plan_type} — ${hero.plan_billing}`],
               ['Start', hero.plan_start ?? '—'],
@@ -1292,7 +1292,7 @@ export default function CoachHeroProfile() {
 
           {hero.plan_type === 'C' && hero.nutrition_targets && (
             <Card className="p-5 space-y-3">
-              <h3 className="text-[#888] text-xs font-medium uppercase tracking-wider">Nutrition Targets</h3>
+              <h3 className="text-[#aaa] text-xs font-medium uppercase tracking-wider">Nutrition Targets</h3>
               {Object.entries(hero.nutrition_targets).map(([k, v]) => (
                 <div key={k} className="flex justify-between text-sm">
                   <span className="text-[#555] capitalize">{k}</span>
@@ -1304,8 +1304,8 @@ export default function CoachHeroProfile() {
 
           {hero.notes && (
             <Card className="p-5">
-              <h3 className="text-[#888] text-xs font-medium uppercase tracking-wider mb-2">Internal Notes</h3>
-              <p className="text-[#888] text-sm">{hero.notes}</p>
+              <h3 className="text-[#aaa] text-xs font-medium uppercase tracking-wider mb-2">Internal Notes</h3>
+              <p className="text-[#aaa] text-sm">{hero.notes}</p>
             </Card>
           )}
         </div>
@@ -1330,7 +1330,7 @@ export default function CoachHeroProfile() {
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => { setEditBundle(b); setShowBundle(true) }}
-                    className="text-xs text-[#555] hover:text-white px-3 py-1.5 border border-[#333] rounded-[100px] transition-colors">Edit</button>
+                    className="text-xs text-[#555] hover:text-white px-3 py-1.5 border border-[#2a2a2a] rounded-[100px] transition-colors">Edit</button>
                   <button onClick={() => { if (confirm('Delete bundle?')) deleteBundle.mutate(b.id) }}
                     className="text-xs text-[#ff3d3d]/60 hover:text-[#ff3d3d] px-3 py-1.5 border border-[#ff3d3d]/20 rounded-[100px] transition-colors">Delete</button>
                 </div>
@@ -1368,12 +1368,12 @@ export default function CoachHeroProfile() {
                 </div>
                 <Badge variant="muted">{s.sets?.filter(set => set.done).length ?? 0} done</Badge>
               </div>
-              {s.notes && <p className="text-[#888] text-sm italic mb-3">"{s.notes}"</p>}
+              {s.notes && <p className="text-[#aaa] text-sm italic mb-3">"{s.notes}"</p>}
               <div className="space-y-1">
                 {(s.sets ?? []).filter(set => set.done).slice(0, 8).map((set, i) => (
                   <div key={i} className="flex items-center gap-3 text-xs font-[DM_Mono]">
                     <span className="text-[#444] w-5">{set.set_number}</span>
-                    <span className="text-[#888] flex-1">{set.exercise_name}</span>
+                    <span className="text-[#aaa] flex-1">{set.exercise_name}</span>
                     <span className="text-white">{set.weight}kg × {set.reps}</span>
                     <span className="text-[#c8ff00]">✓</span>
                   </div>
@@ -1413,7 +1413,7 @@ export default function CoachHeroProfile() {
       {/* Delete confirmation modal */}
       {showDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-5">
-          <div className="bg-[#111] border border-[#222] rounded-[20px] w-full max-w-sm p-6 space-y-5">
+          <div className="bg-[#111] border border-[#1e1e1e] rounded-[20px] w-full max-w-sm p-6 space-y-5">
             <div className="space-y-2">
               <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-2xl mx-auto"
                 style={{ background: 'rgba(255,61,61,0.08)', border: '1px solid rgba(255,61,61,0.2)' }}>
@@ -1430,7 +1430,7 @@ export default function CoachHeroProfile() {
               <button
                 onClick={() => setShowDelete(false)}
                 disabled={deleteHero.isPending}
-                className="flex-1 py-3 rounded-[100px] border border-[#333] text-[#888] font-[DM_Mono] text-[11px] uppercase tracking-[2px] hover:border-[#555] transition-all"
+                className="flex-1 py-3 rounded-[100px] border border-[#2a2a2a] text-[#aaa] font-[DM_Mono] text-[11px] uppercase tracking-[2px] hover:border-[#555] transition-all"
               >
                 Cancel
               </button>

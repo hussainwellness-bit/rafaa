@@ -200,7 +200,7 @@ export default function CoachLogForHero() {
       <div className="px-5 pt-6 pb-4 flex items-center gap-4">
         <button
           onClick={() => navigate(`/coach/heroes/${heroId}`)}
-          className="w-10 h-10 rounded-full border border-[#333] flex items-center justify-center text-[#888] hover:text-white hover:border-[#555] transition-all shrink-0"
+          className="w-10 h-10 rounded-full border border-[#2a2a2a] flex items-center justify-center text-[#aaa] hover:text-white hover:border-[#555] transition-all shrink-0"
         >←</button>
         <div className="flex items-start flex-col min-w-0">
           <p className="text-[#555] text-xs font-semibold uppercase tracking-wide">
@@ -220,7 +220,7 @@ export default function CoachLogForHero() {
         {exerciseGroups.map(({ be, sets: exSets }) => {
           const ghost = ghostData[be.exercise_id]
           return (
-            <div key={be.id} className="rounded-[16px] border border-[#222] bg-[#111]" style={{ padding: 20 }}>
+            <div key={be.id} className="rounded-[16px] border border-[#1e1e1e] bg-[#111]" style={{ padding: 20 }}>
               <div className="flex items-start justify-between gap-3 mb-2">
                 <p className="text-white font-bold leading-snug" style={{ fontSize: 18 }}>
                   {be.exercise?.name}
@@ -321,7 +321,7 @@ export default function CoachLogForHero() {
             if (hasData) scheduleAutoSave(sets, e.target.value)
           }}
           placeholder="How did the session go?"
-          className="w-full px-5 py-4 bg-[#111] border border-[#222] rounded-[14px] text-white placeholder:text-[#333] focus:outline-none focus:border-[#c8ff00] resize-none"
+          className="w-full px-5 py-4 bg-[#111] border border-[#1e1e1e] rounded-[14px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] resize-none"
           style={{ fontSize: 15 }}
         />
       </div>

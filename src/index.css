@@ -3,14 +3,14 @@
 @theme {
   --color-bg:        #080808;
   --color-card:      #111111;
-  --color-card2:     #1a1a1a;
-  --color-border:    #222222;
+  --color-card2:     #1e1e1e;
+  --color-border:    #1e1e1e;
   --color-accent:    #c8ff00;
   --color-red:       #ff3d3d;
   --color-blue:      #3d9fff;
-  --color-purple:    #a855f7;
-  --color-text:      #ffffff;
-  --color-muted:     #888888;
+  --color-purple:    #c084fc;
+  --color-text:      #f2f2f2;
+  --color-muted:     #aaaaaa;
   --color-muted2:    #555555;
 
   --font-heading: 'Bebas Neue', sans-serif;

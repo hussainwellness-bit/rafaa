@@ -10,46 +10,35 @@ import WeekStrip, { getWeekDates } from '../../components/ui/WeekStrip'
 
 const TODAY = new Date().toISOString().slice(0, 10)
 
-function BundleCard({ bundle, recommended, lastDone, selectedDate }: {
+function BundleCard({ bundle, tag, lastDone, selectedDate }: {
   bundle: Bundle
-  recommended: boolean
+  tag?: string
   lastDone?: string
   selectedDate: string
 }) {
   return (
-    <Link to={`/hero/workout/${bundle.id}`} state={{ date: selectedDate }}>
-      <div
-        className="rounded-[16px] border p-6 space-y-4 cursor-pointer active:scale-[0.98] transition-all"
-        style={
-          recommended
-            ? { borderColor: bundle.color + '80', background: bundle.color + '0d' }
-            : { borderColor: '#222' }
-        }
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: bundle.color }} />
-            <span className="text-white font-bold text-lg leading-tight">{bundle.name}</span>
+    <Link to={`/hero/workout/${bundle.id}`} state={{ date: selectedDate }} style={{ display: 'block', textDecoration: 'none' }}>
+      <div className="split-card">
+        <div className="split-card-inner">
+          <div className="split-accent-bar" style={{ background: bundle.color }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {tag && (
+              <p className="split-tag" style={{ color: bundle.color }}>{tag}</p>
+            )}
+            <p className="split-name">{bundle.name}</p>
+            <p className="split-meta">
+              {lastDone
+                ? `Last: ${new Date(lastDone + 'T12:00:00').toLocaleDateString()}`
+                : 'Not done yet'}
+            </p>
           </div>
-          {recommended && (
-            <span
-              className="text-xs font-bold px-3 py-1 rounded-[100px] uppercase tracking-wide"
-              style={{ background: bundle.color + '25', color: bundle.color }}
-            >
-              {selectedDate === TODAY ? 'Today' : new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
-            </span>
-          )}
+          <span className="split-arrow">→</span>
         </div>
         {bundle.description && (
-          <p className="text-[#666] text-[15px] leading-snug">{bundle.description}</p>
+          <div className="split-chips">
+            <span className="split-chip">{bundle.description}</span>
+          </div>
         )}
-        <div className="flex items-center justify-between">
-          {lastDone
-            ? <p className="text-[#444] text-sm font-[DM_Mono]">Last: {new Date(lastDone + 'T12:00:00').toLocaleDateString()}</p>
-            : <p className="text-[#333] text-sm">Not done yet</p>
-          }
-          <span className="text-[15px] font-semibold" style={{ color: bundle.color }}>Start →</span>
-        </div>
       </div>
     </Link>
   )
@@ -113,7 +102,6 @@ export default function HeroHome() {
     enabled: !!profile?.coach_id,
   })
 
-  // Sessions for the visible week — used for dots + lastDoneMap
   const { data: weekSessions = [] } = useQuery({
     queryKey: ['hero-week-sessions-home', profile?.id, weekDates[0]],
     queryFn: async () => {
@@ -127,7 +115,6 @@ export default function HeroHome() {
     enabled: !!profile?.id,
   })
 
-  // All sessions for lastDone badges
   const { data: lastSessions = [] } = useQuery({
     queryKey: ['hero-last-sessions', profile?.id],
     queryFn: async () => {
@@ -144,7 +131,6 @@ export default function HeroHome() {
     if (s.bundle_id && !lastDoneMap[s.bundle_id]) lastDoneMap[s.bundle_id] = s.logged_at
   }
 
-  // Dots: date → bundle color if workout logged, '#444' if rest day
   const dotsMap: Record<string, string> = {}
   for (const s of weekSessions) {
     if (!dotsMap[s.logged_at]) {
@@ -157,7 +143,6 @@ export default function HeroHome() {
     }
   }
 
-  // Which bundle is recommended for the selected day
   const selectedDayIndex = new Date(selectedDate + 'T12:00:00').getDay()
   const daySchedule = schedule.find(s => s.day_index === selectedDayIndex)
   const recommendedBundle = bundles.find(b => b.id === daySchedule?.bundle_id)
@@ -168,7 +153,6 @@ export default function HeroHome() {
 
   async function handleRestDay() {
     if (!profile?.id) return
-
     const { data: daySessions } = await supabase
       .from('sessions_v2')
       .select('id, sets:session_sets(done)')
@@ -217,18 +201,22 @@ export default function HeroHome() {
   }
 
   if (isLoading) return (
-    <div className="flex items-center justify-center h-screen">
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
       <p className="font-[DM_Mono] text-[#555] text-[13px] tracking-[2px]">LOADING...</p>
     </div>
   )
 
   return (
-    <div className="px-5 pt-6 pb-32 max-w-lg mx-auto space-y-6">
+    <div className="wrap" style={{ paddingTop: 24 }}>
 
       {/* Header */}
-      <div>
-        <h1 className="font-[Bebas_Neue] text-6xl text-white tracking-wide leading-none">HUSSAIN.LIFT</h1>
-        <p className="text-[#555] text-[15px] mt-2">Hey {profile?.full_name?.split(' ')[0]} 👊</p>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 48, letterSpacing: 4, lineHeight: 1, color: 'var(--text)', margin: 0 }}>
+          HUSSAIN<em style={{ fontStyle: 'normal', color: 'var(--accent)' }}>.LIFT</em>
+        </h1>
+        <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+          Hey {profile?.full_name?.split(' ')[0]} 👊
+        </p>
       </div>
 
       {/* Week strip */}
@@ -244,31 +232,36 @@ export default function HeroHome() {
       />
 
       {/* Day label */}
-      <p className="text-[#888] text-[15px] -mt-2">{selectedDateLabel}</p>
+      <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)', marginBottom: 16 }}>
+        {selectedDateLabel}
+      </p>
 
-      {/* Recommended for selected day */}
+      {/* Recommended */}
       {recommendedBundle && (
-        <div className="space-y-3">
-          <p className="text-[#888] text-xs font-bold uppercase tracking-widest">Scheduled Workout</p>
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--text3)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8 }}>
+            SCHEDULED
+          </p>
           <BundleCard
             bundle={recommendedBundle}
-            recommended
+            tag={selectedDate === TODAY ? 'Today' : new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
             lastDone={lastDoneMap[recommendedBundle.id]}
             selectedDate={selectedDate}
           />
         </div>
       )}
 
-      {/* All Bundles */}
+      {/* All bundles */}
       {bundles.length > 0 ? (
-        <div className="space-y-3">
-          <p className="text-[#888] text-xs font-bold uppercase tracking-widest">All Workouts</p>
-          <div className="space-y-3">
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--text3)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8 }}>
+            ALL WORKOUTS
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {bundles.map(b => (
               <BundleCard
                 key={b.id}
                 bundle={b}
-                recommended={false}
                 lastDone={lastDoneMap[b.id]}
                 selectedDate={selectedDate}
               />
@@ -276,57 +269,54 @@ export default function HeroHome() {
           </div>
         </div>
       ) : (
-        <div className="rounded-[20px] border border-[#1e1e1e] bg-[#111] p-8 text-center space-y-5">
-          <div className="w-16 h-16 rounded-[14px] flex items-center justify-center text-3xl mx-auto"
-            style={{ background: 'rgba(200,255,0,0.06)', border: '1px solid rgba(200,255,0,0.12)' }}>
-            ⏳
-          </div>
-          <div>
-            <h2 className="font-[Bebas_Neue] text-[#f2f2f2] tracking-[2px] text-2xl">YOUR PLAN IS BEING PREPARED</h2>
-            <p className="text-[#555] font-[DM_Mono] text-[12px] mt-2 leading-relaxed max-w-xs mx-auto">
-              {coach?.full_name
-                ? `Your coach ${coach.full_name} is building your personalized training plan.`
-                : "Your coach is building your personalized training plan."}
-            </p>
-          </div>
-          {profile?.plan_type && (
-            <span className="inline-block text-[10px] font-[DM_Mono] font-bold uppercase tracking-[2px] px-3 py-1.5 rounded-[100px] border"
-              style={{
-                borderColor: profile.plan_type === 'C' ? 'rgba(168,85,247,0.4)' : profile.plan_type === 'B' ? 'rgba(61,159,255,0.4)' : 'rgba(200,255,0,0.3)',
-                color: profile.plan_type === 'C' ? '#a855f7' : profile.plan_type === 'B' ? '#3d9fff' : '#c8ff00',
-                background: profile.plan_type === 'C' ? 'rgba(168,85,247,0.06)' : profile.plan_type === 'B' ? 'rgba(61,159,255,0.06)' : 'rgba(200,255,0,0.06)',
-              }}>
-              Plan {profile.plan_type}
-            </span>
-          )}
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 20px', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+          <h2 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 22, letterSpacing: 3, color: 'var(--text)', marginBottom: 8 }}>
+            YOUR PLAN IS BEING PREPARED
+          </h2>
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)', lineHeight: 1.6 }}>
+            {coach?.full_name
+              ? `Your coach ${coach.full_name} is building your personalized training plan.`
+              : 'Your coach is building your personalized training plan.'}
+          </p>
         </div>
       )}
 
-      {/* Rest Day */}
-      <div className="space-y-3">
-        <p className="text-[#888] text-xs font-bold uppercase tracking-widest">Or</p>
+      {/* Rest day */}
+      <div style={{ marginTop: 8 }}>
+        <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--text3)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8 }}>
+          OR
+        </p>
         <button
           onClick={handleRestDay}
           disabled={savingRest}
-          className="w-full rounded-[16px] border border-[#222] border-dashed p-6 flex items-center justify-center gap-4 hover:border-[#333] hover:bg-[#111] transition-all active:scale-[0.98] disabled:opacity-50"
+          style={{
+            width: '100%', background: 'var(--card)', border: '1px dashed var(--border2)',
+            borderRadius: 16, padding: '20px 18px', display: 'flex', alignItems: 'center',
+            gap: 14, cursor: 'pointer', opacity: savingRest ? 0.5 : 1,
+          }}
         >
-          <span className="text-3xl">🛋️</span>
-          <div className="text-left">
-            <p className="text-white font-bold text-lg">{savingRest ? 'Saving…' : 'Rest Day'}</p>
-            <p className="text-[#555] text-[15px]">Recovery is part of the plan.</p>
+          <span style={{ fontSize: 28 }}>🛋️</span>
+          <div style={{ textAlign: 'left' }}>
+            <p style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 20, letterSpacing: 2, color: 'var(--text2)', margin: 0 }}>
+              {savingRest ? 'SAVING…' : 'REST DAY'}
+            </p>
+            <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>
+              Recovery is part of the plan.
+            </p>
           </div>
         </button>
       </div>
 
       {/* Confirm overwrite modal */}
       <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-        <div className="space-y-5">
-          <div className="text-4xl text-center">⚠️</div>
-          <p className="text-white font-semibold text-center text-lg">Switch to Rest Day?</p>
-          <p className="text-[#666] text-[15px] text-center leading-relaxed">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'center' }}>
+          <div style={{ fontSize: 36 }}>⚠️</div>
+          <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>Switch to Rest Day?</p>
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)', lineHeight: 1.6 }}>
             You already logged a workout. Switching to Rest Day will delete that session.
           </p>
-          <div className="flex gap-3">
+          <div style={{ display: 'flex', gap: 10 }}>
             <Button variant="ghost" className="flex-1" onClick={() => setConfirmOpen(false)}>Cancel</Button>
             <Button className="flex-1" onClick={() => doSaveRestDay(conflictId)}>Yes, Switch</Button>
           </div>

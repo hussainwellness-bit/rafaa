@@ -44,7 +44,7 @@ export default function WeekStrip({
       <div className="flex items-center justify-between mb-3">
         <button
           onClick={onPrev}
-          className="w-8 h-8 rounded-[8px] border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition-all text-sm flex items-center justify-center"
+          className="w-8 h-8 rounded-[8px] border border-[#2a2a2a] text-[#aaa] hover:text-[#f2f2f2] hover:border-[#555] transition-all text-sm flex items-center justify-center"
         >
           ←
         </button>
@@ -52,7 +52,7 @@ export default function WeekStrip({
         <button
           onClick={onNext}
           disabled={disableNext}
-          className="w-8 h-8 rounded-[8px] border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition-all text-sm flex items-center justify-center disabled:opacity-25 disabled:cursor-not-allowed"
+          className="w-8 h-8 rounded-[8px] border border-[#2a2a2a] text-[#aaa] hover:text-[#f2f2f2] hover:border-[#555] transition-all text-sm flex items-center justify-center disabled:opacity-25 disabled:cursor-not-allowed"
         >
           →
         </button>
@@ -73,16 +73,16 @@ export default function WeekStrip({
               className={`flex flex-col items-center gap-0.5 py-2 rounded-[12px] border transition-all ${
                 isSelected
                   ? 'bg-[#c8ff00]/10 border-[#c8ff00]/60'
-                  : 'border-[#222] hover:border-[#444]'
+                  : 'border-[#1e1e1e] hover:border-[#2a2a2a]'
               }`}
             >
               <span className={`font-[DM_Mono] text-[9px] uppercase tracking-[1px] ${
-                isSelected ? 'text-[#c8ff00]' : isToday ? 'text-[#888]' : 'text-[#444]'
+                isSelected ? 'text-[#c8ff00]' : isToday ? 'text-[#aaa]' : 'text-[#555]'
               }`}>
                 {DAY_LETTERS[i]}
               </span>
               <span className={`font-[Bebas_Neue] text-[20px] leading-none ${
-                isSelected ? 'text-[#c8ff00]' : isToday ? 'text-white' : 'text-[#555]'
+                isSelected ? 'text-[#c8ff00]' : isToday ? 'text-[#f2f2f2]' : 'text-[#555]'
               }`}>
                 {dayNum}
               </span>

@@ -112,7 +112,7 @@ export default function CoachDashboard() {
           className={`flex items-center gap-2 px-4 py-2 rounded-[100px] border text-sm font-medium transition-all shrink-0 ${
             accepting
               ? 'border-green-500/30 bg-green-500/5 text-green-400 hover:border-green-500/50'
-              : 'border-[#333] bg-[#111] text-[#555] hover:border-[#555]'
+              : 'border-[#2a2a2a] bg-[#111] text-[#555] hover:border-[#555]'
           }`}
         >
           <span className={`w-2 h-2 rounded-full ${accepting ? 'bg-green-400' : 'bg-[#555]'}`} />
@@ -172,9 +172,9 @@ export default function CoachDashboard() {
           </div>
           <div className="space-y-3">
             {heroes.slice(0, 6).map(hero => (
-              <Link key={hero.id} to={`/coach/heroes/${hero.id}`} className="flex items-center justify-between py-2 border-b border-[#1a1a1a] last:border-0 hover:opacity-80 transition-opacity">
+              <Link key={hero.id} to={`/coach/heroes/${hero.id}`} className="flex items-center justify-between py-2 border-b border-[#1e1e1e] last:border-0 hover:opacity-80 transition-opacity">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center text-sm font-bold text-[#888]">
+                  <div className="w-8 h-8 rounded-full bg-[#1e1e1e] border border-[#2a2a2a] flex items-center justify-center text-sm font-bold text-[#aaa]">
                     {hero.full_name.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -201,13 +201,13 @@ export default function CoachDashboard() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => { if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11) } else setCalMonth(m => m - 1); setSelectedDay(null) }}
-                className="w-7 h-7 rounded-[8px] border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition-all text-sm"
+                className="w-7 h-7 rounded-[8px] border border-[#2a2a2a] text-[#aaa] hover:text-white hover:border-[#555] transition-all text-sm"
               >←</button>
               <span className="font-[Bebas_Neue] text-lg text-white tracking-wide">{MONTH_NAMES[calMonth]} {calYear}</span>
               <button
                 onClick={() => { if (calMonth === 11) { setCalYear(y => y + 1); setCalMonth(0) } else setCalMonth(m => m + 1); setSelectedDay(null) }}
                 disabled={calYear === today.getFullYear() && calMonth === today.getMonth()}
-                className="w-7 h-7 rounded-[8px] border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition-all text-sm disabled:opacity-30"
+                className="w-7 h-7 rounded-[8px] border border-[#2a2a2a] text-[#aaa] hover:text-white hover:border-[#555] transition-all text-sm disabled:opacity-30"
               >→</button>
             </div>
           </div>
@@ -237,7 +237,7 @@ export default function CoachDashboard() {
                   onClick={() => setSelectedDay(isSelected ? null : dateStr)}
                   className={`aspect-square flex flex-col items-center justify-center rounded-[6px] transition-all ${
                     isSelected ? 'bg-[#c8ff00]/10 border border-[#c8ff00]/40' :
-                    isToday ? 'border border-[#333]' : 'hover:bg-[#1a1a1a]'
+                    isToday ? 'border border-[#2a2a2a]' : 'hover:bg-[#1e1e1e]'
                   }`}
                 >
                   <span className={`text-[11px] leading-none ${isToday ? 'text-[#c8ff00] font-bold' : 'text-[#666]'}`}>{day}</span>
@@ -261,12 +261,12 @@ export default function CoachDashboard() {
             const daySessions = monthSessions.filter(s => s.logged_at === selectedDay)
             const heroIds = [...new Set(daySessions.map(s => s.user_id))]
             if (!heroIds.length) return (
-              <div className="mt-4 pt-4 border-t border-[#1a1a1a]">
+              <div className="mt-4 pt-4 border-t border-[#1e1e1e]">
                 <p className="text-[#444] font-[DM_Mono] text-[11px]">// No sessions logged</p>
               </div>
             )
             return (
-              <div className="mt-4 pt-4 border-t border-[#1a1a1a] space-y-2">
+              <div className="mt-4 pt-4 border-t border-[#1e1e1e] space-y-2">
                 <p className="text-[#555] font-[DM_Mono] text-[10px] uppercase tracking-[2px]">
                   {new Date(selectedDay + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                 </p>
@@ -276,7 +276,7 @@ export default function CoachDashboard() {
                   return (
                     <Link key={hid} to={`/coach/heroes/${hid}`} className="flex items-center justify-between py-2 hover:opacity-80 transition-opacity">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center text-[10px] font-bold text-[#888]">
+                        <div className="w-6 h-6 rounded-full bg-[#1e1e1e] border border-[#2a2a2a] flex items-center justify-center text-[10px] font-bold text-[#aaa]">
                           {hero?.full_name?.charAt(0).toUpperCase() ?? '?'}
                         </div>
                         <div>
@@ -295,7 +295,7 @@ export default function CoachDashboard() {
           })()}
 
           {/* Legend */}
-          <div className="mt-4 pt-3 border-t border-[#1a1a1a] flex items-center gap-4">
+          <div className="mt-4 pt-3 border-t border-[#1e1e1e] flex items-center gap-4">
             <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#888]" /><span className="text-[#444] font-[DM_Mono] text-[9px]">Plan A</span></div>
             <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#3d9fff]" /><span className="text-[#444] font-[DM_Mono] text-[9px]">Plan B</span></div>
             <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#c8ff00]" /><span className="text-[#444] font-[DM_Mono] text-[9px]">Plan C</span></div>

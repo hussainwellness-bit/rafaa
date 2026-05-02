@@ -29,17 +29,17 @@ export default function SlidePanel({ open, onClose, title, subtitle, children, w
 
       {/* Panel */}
       <div
-        className={`fixed right-0 top-0 bottom-0 z-50 w-full ${width} bg-[#0d0d0d] border-l border-[#222] flex flex-col transition-transform duration-300 ease-out ${
+        className={`fixed right-0 top-0 bottom-0 z-50 w-full ${width} bg-[#111] border-l border-[#1e1e1e] flex flex-col transition-transform duration-300 ease-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Header */}
-        <div className="flex items-start justify-between px-6 py-5 border-b border-[#1a1a1a] shrink-0">
+        <div className="flex items-start justify-between px-6 py-5 border-b border-[#1e1e1e] shrink-0">
           <div>
-            <h2 className="font-[Bebas_Neue] text-3xl text-white tracking-wide">{title}</h2>
+            <h2 className="font-[Bebas_Neue] text-3xl text-[#f2f2f2] tracking-wide">{title}</h2>
             {subtitle && <p className="text-[#555] text-sm mt-0.5">{subtitle}</p>}
           </div>
-          <button onClick={onClose} className="text-[#555] hover:text-white transition-colors text-xl mt-1 ml-4 shrink-0">
+          <button onClick={onClose} className="text-[#555] hover:text-[#f2f2f2] transition-colors text-xl mt-1 ml-4 shrink-0">
             ✕
           </button>
         </div>

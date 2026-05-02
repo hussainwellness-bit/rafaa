@@ -216,33 +216,33 @@ function EditCoachPanel({ coach, heroCount, open, onClose, onDeleted, showToast 
         <Section title="Personal Info">
           <div className="space-y-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-[#888] font-medium">Full Name</label>
+              <label className="text-sm text-[#aaa] font-medium">Full Name</label>
               <input
                 value={form.full_name}
                 onChange={e => set('full_name', e.target.value)}
-                className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[12px] text-white focus:outline-none focus:border-[#c8ff00] text-[15px]"
+                className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] text-white focus:outline-none focus:border-[#c8ff00] text-[15px]"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-[#888] font-medium">Email</label>
+              <label className="text-sm text-[#aaa] font-medium">Email</label>
               <input
                 value={form.email}
                 disabled
-                className="w-full px-4 py-3 bg-[#111] border border-[#222] rounded-[12px] text-[#555] text-[15px] cursor-not-allowed"
+                className="w-full px-4 py-3 bg-[#111] border border-[#1e1e1e] rounded-[12px] text-[#555] text-[15px] cursor-not-allowed"
               />
               <p className="text-[#444] text-xs">Email cannot be changed here</p>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-[#888] font-medium">Phone</label>
+              <label className="text-sm text-[#aaa] font-medium">Phone</label>
               <input
                 value={form.phone}
                 onChange={e => set('phone', e.target.value)}
                 placeholder="+966..."
-                className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[12px] text-white placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] text-[15px]"
+                className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] text-[15px]"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-[#888] font-medium">Coach Type</label>
+              <label className="text-sm text-[#aaa] font-medium">Coach Type</label>
               <div className="flex gap-2">
                 {(['online', 'physical'] as const).map(t => (
                   <button
@@ -252,7 +252,7 @@ function EditCoachPanel({ coach, heroCount, open, onClose, onDeleted, showToast 
                     className={`flex-1 py-2.5 rounded-[10px] text-sm font-medium border transition-all capitalize ${
                       form.coach_type === t
                         ? 'bg-[#c8ff00]/10 border-[#c8ff00]/40 text-[#c8ff00]'
-                        : 'border-[#333] text-[#555] hover:border-[#555]'
+                        : 'border-[#2a2a2a] text-[#555] hover:border-[#555]'
                     }`}
                   >
                     {t}
@@ -263,31 +263,31 @@ function EditCoachPanel({ coach, heroCount, open, onClose, onDeleted, showToast 
           </div>
         </Section>
 
-        <div className="border-t border-[#1a1a1a]" />
+        <div className="border-t border-[#1e1e1e]" />
 
         <Section title="Public Profile">
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-[#888] font-medium">Short Bio</label>
+            <label className="text-sm text-[#aaa] font-medium">Short Bio</label>
             <textarea
               rows={3}
               value={form.coach_bio}
               onChange={e => set('coach_bio', e.target.value)}
               placeholder="Shown to heroes on the discovery page..."
-              className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[12px] text-white placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] resize-none text-sm"
+              className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] resize-none text-sm"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-[#888] font-medium">Specialty</label>
+            <label className="text-sm text-[#aaa] font-medium">Specialty</label>
             <input
               value={form.coach_specialty}
               onChange={e => set('coach_specialty', e.target.value)}
               placeholder="e.g. Fat Loss · Muscle Building"
-              className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[12px] text-white placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] text-[15px]"
+              className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] text-[15px]"
             />
           </div>
         </Section>
 
-        <div className="border-t border-[#1a1a1a]" />
+        <div className="border-t border-[#1e1e1e]" />
 
         <Section title="Account">
           <Toggle
@@ -303,7 +303,7 @@ function EditCoachPanel({ coach, heroCount, open, onClose, onDeleted, showToast 
             onChange={v => set('accepting_heroes', v)}
           />
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-[#888] font-medium">Role</label>
+            <label className="text-sm text-[#aaa] font-medium">Role</label>
             <div className="flex gap-2">
               {(['coach', 'super_admin'] as const).map(r => (
                 <button
@@ -313,7 +313,7 @@ function EditCoachPanel({ coach, heroCount, open, onClose, onDeleted, showToast 
                   className={`flex-1 py-2.5 rounded-[10px] text-sm font-medium border transition-all ${
                     form.role === r
                       ? 'bg-[#c8ff00]/10 border-[#c8ff00]/40 text-[#c8ff00]'
-                      : 'border-[#333] text-[#555] hover:border-[#555]'
+                      : 'border-[#2a2a2a] text-[#555] hover:border-[#555]'
                   }`}
                 >
                   {r === 'super_admin' ? 'Super Admin' : 'Coach'}
@@ -322,25 +322,25 @@ function EditCoachPanel({ coach, heroCount, open, onClose, onDeleted, showToast 
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-[#888] font-medium">Internal Notes</label>
+            <label className="text-sm text-[#aaa] font-medium">Internal Notes</label>
             <textarea
               rows={3}
               value={form.notes}
               onChange={e => set('notes', e.target.value)}
               placeholder="Notes visible only to admins..."
-              className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[12px] text-white placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] resize-none"
+              className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] resize-none"
             />
           </div>
         </Section>
 
-        <div className="border-t border-[#1a1a1a]" />
+        <div className="border-t border-[#1e1e1e]" />
 
         {/* Save / Cancel */}
         <div className="flex gap-3 pb-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 rounded-[12px] border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition-colors text-sm font-medium"
+            className="flex-1 py-3 rounded-[12px] border border-[#2a2a2a] text-[#aaa] hover:text-white hover:border-[#555] transition-colors text-sm font-medium"
           >
             Cancel
           </button>
@@ -354,7 +354,7 @@ function EditCoachPanel({ coach, heroCount, open, onClose, onDeleted, showToast 
           </button>
         </div>
 
-        <div className="border-t border-[#1a1a1a]" />
+        <div className="border-t border-[#1e1e1e]" />
 
         {/* Danger Zone */}
         <div className="space-y-3">
@@ -379,15 +379,15 @@ function EditCoachPanel({ coach, heroCount, open, onClose, onDeleted, showToast 
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
-          <div className="relative bg-[#111] border border-[#222] rounded-[20px] p-6 w-full max-w-sm space-y-4">
+          <div className="relative bg-[#111] border border-[#1e1e1e] rounded-[20px] p-6 w-full max-w-sm space-y-4">
             <h3 className="text-white font-semibold text-lg">Delete {coach.full_name}?</h3>
-            <p className="text-[#888] text-sm leading-relaxed">
+            <p className="text-[#aaa] text-sm leading-relaxed">
               This will delete <span className="text-white font-medium">{coach.full_name}</span> and all their heroes. This cannot be undone. Continue?
             </p>
             <div className="flex gap-3 pt-1">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-2.5 rounded-[10px] border border-[#333] text-[#888] hover:text-white transition-colors text-sm"
+                className="flex-1 py-2.5 rounded-[10px] border border-[#2a2a2a] text-[#aaa] hover:text-white transition-colors text-sm"
               >
                 Cancel
               </button>
@@ -560,7 +560,7 @@ export default function AdminCoaches() {
                   )}
                   <button
                     onClick={() => setEditCoach(coach)}
-                    className="text-xs text-[#555] hover:text-white transition-colors px-3 py-1.5 border border-[#333] rounded-[100px] hover:border-[#555]"
+                    className="text-xs text-[#555] hover:text-white transition-colors px-3 py-1.5 border border-[#2a2a2a] rounded-[100px] hover:border-[#555]"
                   >
                     Edit
                   </button>

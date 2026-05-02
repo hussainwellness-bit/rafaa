@@ -37,8 +37,8 @@ function PaymentPendingScreen() {
           </p>
         </div>
 
-        <div className="bg-[#0e0e0e] border border-[#1a1a1a] rounded-[16px] p-6 text-left space-y-3">
-          <p className="text-[#888] text-xs font-bold uppercase tracking-widest">Your Subscription</p>
+        <div className="bg-[#111] border border-[#1e1e1e] rounded-[16px] p-6 text-left space-y-3">
+          <p className="text-[#aaa] text-xs font-bold uppercase tracking-widest">Your Subscription</p>
           {profile?.subscription_plan && (
             <p className="text-white font-semibold">{PLAN_LABELS[profile.subscription_plan] ?? profile.subscription_plan}</p>
           )}

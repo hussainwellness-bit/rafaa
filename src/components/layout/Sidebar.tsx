@@ -22,10 +22,10 @@ export default function Sidebar({ items, title, subtitle, bottom }: Props) {
   const { profile } = useAuthStore()
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-[240px] bg-[#0d0d0d] border-r border-[#1a1a1a] flex flex-col z-40">
-      <div className="px-6 py-6 border-b border-[#1a1a1a]">
-        <h1 className="font-[Bebas_Neue] text-3xl text-white tracking-widest">{title}</h1>
-        {subtitle && <p className="text-[#444] text-sm mt-1 font-[DM_Mono] uppercase tracking-widest">{subtitle}</p>}
+    <aside className="fixed left-0 top-0 h-full w-[240px] bg-[#0d0d0d] border-r border-[#1e1e1e] flex flex-col z-40">
+      <div className="px-6 py-6 border-b border-[#1e1e1e]">
+        <h1 className="font-[Bebas_Neue] text-3xl text-[#f2f2f2] tracking-widest">{title}</h1>
+        {subtitle && <p className="text-[#555] text-sm mt-1 font-[DM_Mono] uppercase tracking-widest">{subtitle}</p>}
       </div>
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -38,7 +38,7 @@ export default function Sidebar({ items, title, subtitle, bottom }: Props) {
               `flex items-center gap-3 px-4 py-3 rounded-[12px] text-[15px] transition-all ${
                 isActive
                   ? 'bg-[#c8ff00]/10 text-[#c8ff00] font-semibold'
-                  : 'text-[#555] hover:text-white hover:bg-[#1a1a1a]'
+                  : 'text-[#555] hover:text-[#f2f2f2] hover:bg-[#1e1e1e]'
               }`
             }
           >
@@ -48,7 +48,7 @@ export default function Sidebar({ items, title, subtitle, bottom }: Props) {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-[#1a1a1a] space-y-1">
+      <div className="p-4 border-t border-[#1e1e1e] space-y-1">
         {bottom}
         {/* Notification bell — queries live for the signed-in user */}
         {profile?.id && <NotificationBell userId={profile.id} />}

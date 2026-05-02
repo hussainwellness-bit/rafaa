@@ -10,9 +10,9 @@ const variants = {
   accent: 'bg-[#c8ff00]/10 text-[#c8ff00] border-[#c8ff00]/30',
   red:    'bg-[#ff3d3d]/10 text-[#ff3d3d] border-[#ff3d3d]/30',
   blue:   'bg-[#3d9fff]/10 text-[#3d9fff] border-[#3d9fff]/30',
-  purple: 'bg-[#a855f7]/10 text-[#a855f7] border-[#a855f7]/30',
-  muted:  'bg-[#222] text-[#888] border-[#333]',
-  green:  'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  purple: 'bg-[#c084fc]/10 text-[#c084fc] border-[#c084fc]/30',
+  muted:  'bg-[#222] text-[#aaa] border-[#333]',
+  green:  'bg-[#00e676]/10 text-[#00e676] border-[#00e676]/30',
 }
 
 const sizes = {

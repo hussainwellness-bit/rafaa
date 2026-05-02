@@ -115,7 +115,7 @@ function RequestCard({ req, onApprove, onDecline, approving, declining }: {
       {/* Expand toggle */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-5 py-3 border-t border-[#1a1a1a] text-[#444] hover:text-[#888] text-xs font-medium transition-colors text-left flex items-center justify-between"
+        className="w-full px-5 py-3 border-t border-[#1e1e1e] text-[#444] hover:text-[#aaa] text-xs font-medium transition-colors text-left flex items-center justify-between"
       >
         <span>Application details</span>
         <span>{expanded ? '▲' : '▼'}</span>
@@ -138,7 +138,7 @@ function RequestCard({ req, onApprove, onDecline, approving, declining }: {
             ].map(([k, v]) => (
               <div key={k}>
                 <p className="text-[#444] text-xs">{k}</p>
-                <p className="text-[#888] capitalize">{v}</p>
+                <p className="text-[#aaa] capitalize">{v}</p>
               </div>
             ))}
           </div>
@@ -146,25 +146,25 @@ function RequestCard({ req, onApprove, onDecline, approving, declining }: {
           {req.injuries && (
             <div>
               <p className="text-[#444] text-xs mb-1">Injuries</p>
-              <p className="text-[#888] text-sm">{req.injuries}</p>
+              <p className="text-[#aaa] text-sm">{req.injuries}</p>
             </div>
           )}
           {req.allergies && (
             <div>
               <p className="text-[#444] text-xs mb-1">Allergies</p>
-              <p className="text-[#888] text-sm">{req.allergies}</p>
+              <p className="text-[#aaa] text-sm">{req.allergies}</p>
             </div>
           )}
           {req.medications && (
             <div>
               <p className="text-[#444] text-xs mb-1">Medications</p>
-              <p className="text-[#888] text-sm">{req.medications}</p>
+              <p className="text-[#aaa] text-sm">{req.medications}</p>
             </div>
           )}
           {req.notes && (
             <div>
               <p className="text-[#444] text-xs mb-1">Notes from applicant</p>
-              <p className="text-[#888] text-sm leading-relaxed">{req.notes}</p>
+              <p className="text-[#aaa] text-sm leading-relaxed">{req.notes}</p>
             </div>
           )}
           <div className="flex flex-wrap gap-2 pt-1 border-t border-[#111]">
@@ -174,7 +174,7 @@ function RequestCard({ req, onApprove, onDecline, approving, declining }: {
               ['Health consent', req.health_consent],
             ].map(([k, v]) => (
               <span key={String(k)} className={`text-xs px-2 py-1 rounded-[100px] border ${
-                v ? 'border-green-500/20 text-green-400/70' : 'border-[#333] text-[#555]'
+                v ? 'border-green-500/20 text-green-400/70' : 'border-[#2a2a2a] text-[#555]'
               }`}>
                 {v ? '✓' : '✗'} {k}
               </span>
@@ -187,7 +187,7 @@ function RequestCard({ req, onApprove, onDecline, approving, declining }: {
       {showDecline && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowDecline(false)} />
-          <div className="relative bg-[#111] border border-[#222] rounded-[20px] p-6 w-full max-w-sm space-y-4">
+          <div className="relative bg-[#111] border border-[#1e1e1e] rounded-[20px] p-6 w-full max-w-sm space-y-4">
             <h3 className="text-white font-semibold">Decline Request</h3>
             <p className="text-[#555] text-sm">Optionally add a reason for {req.full_name}.</p>
             <textarea
@@ -195,12 +195,12 @@ function RequestCard({ req, onApprove, onDecline, approving, declining }: {
               value={declineReason}
               onChange={e => setDeclineReason(e.target.value)}
               placeholder="Optional reason..."
-              className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[12px] text-white placeholder:text-[#444] focus:outline-none resize-none text-sm"
+              className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] text-white placeholder:text-[#555] focus:outline-none resize-none text-sm"
             />
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDecline(false)}
-                className="flex-1 py-2.5 border border-[#333] text-[#888] rounded-[10px] text-sm hover:text-white transition-colors"
+                className="flex-1 py-2.5 border border-[#2a2a2a] text-[#aaa] rounded-[10px] text-sm hover:text-white transition-colors"
               >
                 Cancel
               </button>
@@ -473,7 +473,7 @@ export default function CoachRequests() {
               className={`px-4 py-2 rounded-[10px] text-sm font-medium border transition-all capitalize ${
                 filter === f
                   ? 'bg-[#c8ff00]/10 border-[#c8ff00]/40 text-[#c8ff00]'
-                  : 'border-[#333] text-[#555] hover:border-[#555]'
+                  : 'border-[#2a2a2a] text-[#555] hover:border-[#555]'
               }`}
             >
               {f === 'pending' ? `Pending (${pendingCount})` : `All (${requests.length})`}

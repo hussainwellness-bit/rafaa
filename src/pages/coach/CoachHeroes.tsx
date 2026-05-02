@@ -172,7 +172,7 @@ function AddHeroModal({ open, onClose, coachId, isPhysicalCoach }: {
               className={`flex-1 py-2.5 rounded-[100px] text-sm font-semibold border transition-all ${
                 (form.is_physical ? 'physical' : 'online') === t
                   ? 'bg-[#c8ff00] border-[#c8ff00] text-[#080808]'
-                  : 'border-[#333] text-[#555] hover:border-[#555]'
+                  : 'border-[#2a2a2a] text-[#555] hover:border-[#555]'
               }`}
             >
               {t === 'online' ? '🌐 Online Hero' : '🏋️ Physical Hero'}
@@ -182,7 +182,7 @@ function AddHeroModal({ open, onClose, coachId, isPhysicalCoach }: {
       )}
 
       {form.is_physical && (
-        <div className="mb-5 bg-[#1a1a1a] border border-[#333] rounded-[12px] px-4 py-3 text-sm text-[#888]">
+        <div className="mb-5 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] px-4 py-3 text-sm text-[#aaa]">
           Physical heroes have no app access. You log all their data on their behalf.
         </div>
       )}
@@ -195,7 +195,7 @@ function AddHeroModal({ open, onClose, coachId, isPhysicalCoach }: {
 
       {step === 1 && (
         <div className="space-y-4">
-          <h3 className="text-[#888] text-sm font-medium uppercase tracking-wider">Basic Info</h3>
+          <h3 className="text-[#aaa] text-sm font-medium uppercase tracking-wider">Basic Info</h3>
           <div className="grid grid-cols-2 gap-4">
             <Input label="Full Name" required value={form.full_name} onChange={e => set('full_name', e.target.value)} className="col-span-2" />
             {!form.is_physical && (
@@ -218,7 +218,7 @@ function AddHeroModal({ open, onClose, coachId, isPhysicalCoach }: {
 
       {step === 2 && (
         <div className="space-y-4">
-          <h3 className="text-[#888] text-sm font-medium uppercase tracking-wider">Plan & Settings</h3>
+          <h3 className="text-[#aaa] text-sm font-medium uppercase tracking-wider">Plan & Settings</h3>
           <div className="grid grid-cols-2 gap-4">
             <Select label="Plan Type" value={form.plan_type} onChange={e => set('plan_type', e.target.value as PlanType)} options={[
               { value: 'A', label: `Plan A — ${PLAN_NAMES.A}` },
@@ -237,13 +237,13 @@ function AddHeroModal({ open, onClose, coachId, isPhysicalCoach }: {
 
           {(form.plan_type === 'B' || form.plan_type === 'C') && (
             <div>
-              <label className="text-sm text-[#888] font-medium block mb-2">Journal Fields</label>
+              <label className="text-sm text-[#aaa] font-medium block mb-2">Journal Fields</label>
               <div className="flex flex-wrap gap-2">
                 {journalFields.map(field => (
                   <button key={field} type="button"
                     onClick={() => set('journal_config', { ...form.journal_config, [field]: !form.journal_config[field] })}
                     className={`px-3 py-1 rounded-[100px] text-xs border transition-all capitalize ${
-                      form.journal_config[field] ? 'bg-[#c8ff00]/10 border-[#c8ff00]/40 text-[#c8ff00]' : 'border-[#333] text-[#555]'
+                      form.journal_config[field] ? 'bg-[#c8ff00]/10 border-[#c8ff00]/40 text-[#c8ff00]' : 'border-[#2a2a2a] text-[#555]'
                     }`}
                   >
                     {field.replace('_', ' ')}
@@ -255,7 +255,7 @@ function AddHeroModal({ open, onClose, coachId, isPhysicalCoach }: {
 
           {form.plan_type === 'C' && !form.is_physical && (
             <div className="space-y-3">
-              <label className="text-sm text-[#888] font-medium block">Nutrition Targets</label>
+              <label className="text-sm text-[#aaa] font-medium block">Nutrition Targets</label>
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Calories (kcal)" type="number" value={form.nutrition_targets.calories} onChange={e => set('nutrition_targets', { ...form.nutrition_targets, calories: e.target.value })} />
                 <Input label="Protein (g)" type="number" value={form.nutrition_targets.protein} onChange={e => set('nutrition_targets', { ...form.nutrition_targets, protein: e.target.value })} />
@@ -266,9 +266,9 @@ function AddHeroModal({ open, onClose, coachId, isPhysicalCoach }: {
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-[#888] font-medium">Internal Notes</label>
+            <label className="text-sm text-[#aaa] font-medium">Internal Notes</label>
             <textarea rows={2} value={form.notes} onChange={e => set('notes', e.target.value)}
-              className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[12px] text-white placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00] resize-none text-sm" />
+              className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00] resize-none text-sm" />
           </div>
 
           <div className="flex gap-3">
@@ -280,8 +280,8 @@ function AddHeroModal({ open, onClose, coachId, isPhysicalCoach }: {
 
       {step === 3 && (
         <div className="space-y-5">
-          <h3 className="text-[#888] text-sm font-medium uppercase tracking-wider">Confirm</h3>
-          <div className="bg-[#1a1a1a] rounded-[12px] p-4 space-y-2 text-sm">
+          <h3 className="text-[#aaa] text-sm font-medium uppercase tracking-wider">Confirm</h3>
+          <div className="bg-[#1e1e1e] rounded-[12px] p-4 space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-[#555]">Name</span><span className="text-white">{form.full_name}</span></div>
             {!form.is_physical && (
               <div className="flex justify-between"><span className="text-[#555]">Email</span><span className="text-white">{form.email}</span></div>
@@ -299,12 +299,12 @@ function AddHeroModal({ open, onClose, coachId, isPhysicalCoach }: {
             </div>
           </div>
           {!form.is_physical && (
-            <div className="bg-[#c8ff00]/5 border border-[#c8ff00]/20 rounded-[12px] p-4 text-sm text-[#888]">
+            <div className="bg-[#c8ff00]/5 border border-[#c8ff00]/20 rounded-[12px] p-4 text-sm text-[#aaa]">
               📧 A password setup email will be sent to <span className="text-white">{form.email}</span>. They click the link to set their own password and access the app.
             </div>
           )}
           {form.is_physical && (
-            <div className="bg-[#f59e0b]/5 border border-[#f59e0b]/20 rounded-[12px] p-4 text-sm text-[#888]">
+            <div className="bg-[#f59e0b]/5 border border-[#f59e0b]/20 rounded-[12px] p-4 text-sm text-[#aaa]">
               🏋️ This hero has no app access. You will log all workouts and journal entries on their behalf.
             </div>
           )}
@@ -358,12 +358,12 @@ export default function CoachHeroes() {
       </div>
 
       <input type="text" placeholder="Search heroes..." value={search} onChange={e => setSearch(e.target.value)}
-        className="w-full px-4 py-3 bg-[#111] border border-[#222] rounded-[12px] text-white placeholder:text-[#444] focus:outline-none focus:border-[#c8ff00]" />
+        className="w-full px-4 py-3 bg-[#111] border border-[#1e1e1e] rounded-[12px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#c8ff00]" />
 
       <div className="grid gap-3">
         {filtered.map(hero => (
           <Link key={hero.id} to={`/coach/heroes/${hero.id}`}>
-            <Card className="p-5 flex items-center justify-between hover:border-[#333] transition-colors cursor-pointer">
+            <Card className="p-5 flex items-center justify-between hover:border-[#2a2a2a] transition-colors cursor-pointer">
               <div className="flex items-center gap-4">
                 <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#c8ff00]/20 to-[#c8ff00]/5 border border-[#c8ff00]/20 flex items-center justify-center text-[#c8ff00] font-bold">
                   {hero.full_name.charAt(0).toUpperCase()}

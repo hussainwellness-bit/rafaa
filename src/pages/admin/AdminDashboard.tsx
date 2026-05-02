@@ -71,7 +71,7 @@ export default function AdminDashboard() {
             {coaches.map(coach => {
               const coachHeroes = heroes.filter(h => h.coach_id === coach.id)
               return (
-                <div key={coach.id} className="flex items-center justify-between py-2 border-b border-[#1a1a1a] last:border-0">
+                <div key={coach.id} className="flex items-center justify-between py-2 border-b border-[#1e1e1e] last:border-0">
                   <div>
                     <p className="text-white text-sm font-medium">{coach.full_name}</p>
                     <p className="text-[#555] text-xs">{coach.email}</p>
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
           <div className="space-y-3">
             {recentHeroes.length === 0 && <p className="text-[#555] text-sm">No heroes yet.</p>}
             {recentHeroes.map(hero => (
-              <div key={hero.id} className="flex items-center justify-between py-2 border-b border-[#1a1a1a] last:border-0">
+              <div key={hero.id} className="flex items-center justify-between py-2 border-b border-[#1e1e1e] last:border-0">
                 <div>
                   <p className="text-white text-sm font-medium">{hero.full_name}</p>
                   <p className="text-[#555] text-xs">{new Date(hero.created_at).toLocaleDateString()}</p>

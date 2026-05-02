@@ -1,6 +1,7 @@
 # Current Design System Export
 > Auto-generated from src/styles/, src/pages/, src/components/
 > Last updated: 2026-05-02
+> ⚠️ Corrected 2026-05-02 — aligned to Training Tracker reference system (hussainlift.netlify.app)
 
 ---
 
@@ -30,19 +31,19 @@
 
 ### Tailwind Theme Variables (`src/index.css`)
 
-| Variable | Value |
-|---|---|
-| `--color-bg` | `#080808` |
-| `--color-card` | `#111111` |
-| `--color-card2` | `#1a1a1a` |
-| `--color-border` | `#222222` |
-| `--color-accent` | `#c8ff00` |
-| `--color-red` | `#ff3d3d` |
-| `--color-blue` | `#3d9fff` |
-| `--color-purple` | `#a855f7` |
-| `--color-text` | `#ffffff` |
-| `--color-muted` | `#888888` |
-| `--color-muted2` | `#555555` |
+| Variable | Value | ⚠️ Correction |
+|---|---|---|
+| `--color-bg` | `#080808` | ✓ correct |
+| `--color-card` | `#111111` | ✓ correct |
+| `--color-card2` | `#1e1e1e` | was `#1a1a1a` — must match `--lift2` |
+| `--color-border` | `#1e1e1e` | was `#222222` — must match `--border` |
+| `--color-accent` | `#c8ff00` | ✓ correct |
+| `--color-red` | `#ff3d3d` | ✓ correct |
+| `--color-blue` | `#3d9fff` | ✓ correct |
+| `--color-purple` | `#c084fc` | was `#a855f7` — use Day 5 purple |
+| `--color-text` | `#f2f2f2` | was `#ffffff` — pure white is wrong |
+| `--color-muted` | `#aaaaaa` | was `#888888` — use `--text2` value |
+| `--color-muted2` | `#555555` | ✓ correct |
 
 > **Inconsistency**: Two parallel variable systems exist — CSS vars (`--bg`, `--card`) used in hero pages via `var()`, and Tailwind config vars (`--color-bg`, `--color-card`) used in coach/admin/component pages via Tailwind classes. They are not unified. Hero pages use CSS vars; coach/admin pages use hardcoded Tailwind hex values.
 
@@ -91,10 +92,9 @@
 | `#ff3d3d` | Error, delete actions, sign out hover |
 | `#3d9fff` | Blue — cardio, water tracker, blue badges |
 | `#00e676` | Green — PR (personal record) row highlight |
-| `#a855f7` | Purple — training load stat, purple badges |
-| `#f59e0b` | Orange — carbs macro bar |
+| `#c084fc` | Purple — Day 5 volume split, purple badges (was `#a855f7` — corrected) |
 | `#ff8c8c` | Protein macro color |
-| `#6ab8ff` | Alt carbs macro color |
+| `#6ab8ff` | Carbs macro color |
 | `#ffb84d` | Fat macro color |
 
 ### rgba() Opacity Scales
@@ -238,9 +238,9 @@ Base: `inline-flex items-center justify-center gap-2 rounded-[100px] font-semibo
 | Variant | Classes |
 |---|---|
 | `accent` (default) | `bg-[#c8ff00] text-[#080808] font-bold hover:bg-[#d4ff33] active:scale-95` |
-| `ghost` | `bg-transparent border border-[#333] text-white hover:bg-[#1a1a1a] active:scale-95` |
+| `ghost` | `bg-transparent border border-[#2a2a2a] text-[#f2f2f2] hover:bg-[#1e1e1e] active:scale-95` | was `border-[#333] text-white hover:bg-[#1a1a1a]` |
 | `danger` | `bg-[#ff3d3d]/10 border border-[#ff3d3d]/40 text-[#ff3d3d] hover:bg-[#ff3d3d]/20 active:scale-95` |
-| `secondary` | `bg-[#1a1a1a] text-white hover:bg-[#222] active:scale-95` |
+| `secondary` | `bg-[#1e1e1e] text-[#f2f2f2] hover:bg-[#2a2a2a] active:scale-95` | was `bg-[#1a1a1a] text-white hover:bg-[#222]` |
 
 | Size | Classes |
 |---|---|
@@ -250,10 +250,10 @@ Base: `inline-flex items-center justify-center gap-2 rounded-[100px] font-semibo
 
 ### Card (`src/components/ui/Card.tsx`)
 
-`rounded-[16px] border border-[#222] bg-[#111]`  
+`rounded-[16px] border border-[#1e1e1e] bg-[#111]`  
 Glass variant: `bg-[#111]/80 backdrop-blur-sm`
 
-> Used in coach/admin pages. Hero pages use `.card` CSS class or inline styles with `var(--card)`.
+> ⚠️ Was `border-[#222]` — corrected to `#1e1e1e` to match `--border`.
 
 ### Badge (`src/components/ui/Badge.tsx`)
 
@@ -261,12 +261,12 @@ Base: `inline-flex items-center gap-1 rounded-[5px] border font-[DM_Mono] font-m
 
 | Variant | Classes |
 |---|---|
-| `muted` (default) | `bg-[#222] text-[#888] border-[#333]` |
+| `muted` (default) | `bg-[#222] text-[#aaa] border-[#333]` | was `text-[#888]` — use `--text2` |
 | `accent` | `bg-[#c8ff00]/10 text-[#c8ff00] border-[#c8ff00]/30` |
 | `red` | `bg-[#ff3d3d]/10 text-[#ff3d3d] border-[#ff3d3d]/30` |
 | `blue` | `bg-[#3d9fff]/10 text-[#3d9fff] border-[#3d9fff]/30` |
-| `purple` | `bg-[#a855f7]/10 text-[#a855f7] border-[#a855f7]/30` |
-| `green` | `bg-emerald-500/10 text-emerald-400 border-emerald-500/30` |
+| `purple` | `bg-[#c084fc]/10 text-[#c084fc] border-[#c084fc]/30` | was `#a855f7` — corrected |
+| `green` | `bg-[#00e676]/10 text-[#00e676] border-[#00e676]/30` | was `emerald-*` — use `--green-pr` |
 
 | Size | Classes |
 |---|---|
@@ -275,11 +275,12 @@ Base: `inline-flex items-center gap-1 rounded-[5px] border font-[DM_Mono] font-m
 
 ### Input (`src/components/ui/Input.tsx`)
 
-`w-full px-5 py-4 bg-[#1a1a1a] border rounded-[14px] text-white text-[15px] placeholder:text-[#444] focus:outline-none transition-colors font-[DM_Mono]`  
-Normal: `border-[#333] focus:border-[#c8ff00]`  
+`w-full px-4 py-3 bg-[#1e1e1e] border rounded-[12px] text-[#f2f2f2] text-[14px] placeholder:text-[#555] focus:outline-none transition-colors font-[DM_Mono]`  
+Normal: `border-[#2a2a2a] focus:border-[#c8ff00]`  
 Error: `border-[#ff3d3d] focus:border-[#ff3d3d]`
 
-> Only used in coach/admin/auth pages. Hero pages use `.set-input`, `.auth-input`, `.duration-input` CSS classes.
+> ⚠️ Was: `rounded-[14px] px-5 py-4 bg-[#1a1a1a] border-[#333] text-white text-[15px] placeholder:text-[#444]`  
+> Corrected to match `--lift2` bg, `--border2` border, `--text` color, `--text3` placeholder, and consistent radius/padding with auth-input pattern.
 
 ### Bottom Nav (`.nav` / `.nav-btn`)
 
@@ -293,12 +294,14 @@ Container: `position: fixed; bottom: 0; left: 0; right: 0; background: rgba(8,8,
 
 ### Sidebar (`src/components/layout/Sidebar.tsx`)
 
-`fixed left-0 top-0 h-full w-[240px] bg-[#0d0d0d] border-r border-[#1a1a1a] flex flex-col z-40`
+`fixed left-0 top-0 h-full w-[240px] bg-[#0d0d0d] border-r border-[#1e1e1e] flex flex-col z-40`
 
-Header: `px-6 py-6 border-b border-[#1a1a1a]` — title: `font-[Bebas_Neue] text-3xl text-white tracking-widest`  
+Header: `px-6 py-6 border-b border-[#1e1e1e]` — title: `font-[Bebas_Neue] text-3xl text-[#f2f2f2] tracking-widest`  
 Nav link active: `bg-[#c8ff00]/10 text-[#c8ff00] font-semibold`  
-Nav link default: `text-[#555] hover:text-white hover:bg-[#1a1a1a]`  
+Nav link default: `text-[#555] hover:text-[#f2f2f2] hover:bg-[#1e1e1e]`  
 Sign out: `text-[#555] hover:text-[#ff3d3d] hover:bg-[#ff3d3d]/5`
+
+> ⚠️ Was: `border-[#1a1a1a]`, `text-white` — corrected to `--border` and `--text`.
 
 ### Split Card (bundle card — `.split-card`)
 
@@ -325,7 +328,7 @@ margin-bottom: 10px; overflow: hidden; transition: border-color 0.2s;
 
 Logged state: `border-color: rgba(200,255,0,0.22)`  
 Header: `display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; gap: 10px`  
-Exercise name: 15px, font-weight 700, `var(--text)`
+Exercise name: 13px, font-weight 700, `var(--text)`
 
 ### Set Input Grid
 
@@ -453,13 +456,15 @@ Selected: `border-color: var(--text2)`
 
 ### WeekStrip (`src/components/ui/WeekStrip.tsx`)
 
-Nav buttons: `w-8 h-8 rounded-[8px] border border-[#333] text-[#888] hover:text-white hover:border-[#555] disabled:opacity-25`  
+Nav buttons: `w-8 h-8 rounded-[8px] border border-[#2a2a2a] text-[#aaa] hover:text-white hover:border-[#555] disabled:opacity-25`  
 Month label: `font-[DM_Mono] text-[11px] text-[#555] tracking-[2px]`  
 Day cell: `flex flex-col items-center gap-0.5 py-2 rounded-[12px] border`  
 Selected: `bg-[#c8ff00]/10 border-[#c8ff00]/60`  
-Default: `border-[#222] hover:border-[#444]`  
-Day letter: DM Mono 9px uppercase — selected: `text-[#c8ff00]`, today: `text-[#888]`, else: `text-[#444]`  
-Day number: Bebas Neue 20px — selected: `text-[#c8ff00]`, today: `text-white`, else: `text-[#555]`  
+Default: `border-[#1e1e1e] hover:border-[#2a2a2a]`  
+Day letter: DM Mono 9px uppercase — selected: `text-[#c8ff00]`, today: `text-[#aaa]`, else: `text-[#555]`  
+Day number: Bebas Neue 20px — selected: `text-[#c8ff00]`, today: `text-[#f2f2f2]`, else: `text-[#555]`
+
+> ⚠️ Was: `border-[#333]`, `text-[#888]`, `text-white` for today — corrected to match `--border2`, `--text2`, `--text`.  
 Dot: `w-1 h-1 rounded-full` — color-dot uses custom `style` prop
 
 ### Macros Banner
@@ -473,19 +478,25 @@ Value: Bebas Neue 18px — protein: `#ff8c8c`, carbs: `#6ab8ff`, fat: `#ffb84d`
 ### Modal (`src/components/ui/Modal.tsx`)
 
 Backdrop: `fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4`  
-Container: `bg-[#0d0d0d] border border-[#222] rounded-[20px] w-full max-w-lg max-h-[90vh] overflow-y-auto`
+Container: `bg-[#111] border border-[#1e1e1e] rounded-[20px] w-full max-w-lg max-h-[90vh] overflow-y-auto`
+
+> ⚠️ Was: `bg-[#0d0d0d] border-[#222]` — corrected to `--card` and `--border`.
 
 ### SlidePanel (`src/components/ui/SlidePanel.tsx`)
 
-`fixed right-0 top-0 bottom-0 z-50 bg-[#0d0d0d] border-l border-[#222] flex flex-col shadow-2xl`  
+`fixed right-0 top-0 bottom-0 z-50 bg-[#111] border-l border-[#1e1e1e] flex flex-col shadow-2xl`  
 Width: responsive (full on mobile, 480px on sm+)  
 Backdrop: `fixed inset-0 z-40 bg-black/60 backdrop-blur-sm`
+
+> ⚠️ Was: `bg-[#0d0d0d] border-[#222]` — corrected to `--card` and `--border`.
 
 ### StatCard (`src/components/ui/StatCard.tsx`)
 
 Base: `rounded-[16px] border bg-[#111]`  
 Accent variant: `bg-[#c8ff00]/5 border-[#c8ff00]/20`  
-Normal: `border-[#222]`
+Normal: `border-[#1e1e1e]`
+
+> ⚠️ Was: `border-[#222]` — corrected to `--border`.
 
 ---
 
@@ -597,50 +608,53 @@ Normal: `border-[#222]`
 
 ## Inconsistencies Found
 
+> ✅ = Fixed in this document | ⚠️ = Still requires code change
+
 ### 1. Dual Variable System
 **Problem**: Hero pages use `var(--bg)`, `var(--card)` etc from `design-system.css`. Coach/admin pages use hardcoded Tailwind values like `bg-[#0d0d0d]`, `border-[#222]`.  
 **Impact**: Same background values differ slightly — `--bg` is `#080808`, but coach sidebar uses `bg-[#0d0d0d]` and `bg-[#111]` vs `--card: #111111`. Near-identical but not unified.  
-**Fix**: Unify into one set of CSS vars and reference them everywhere.
+**Fix**: ⚠️ Unify into one set of CSS vars and reference them everywhere via Tailwind config.
 
-### 2. Border Color Mismatch
-**Problem**: Hero cards use `var(--border)` = `#1e1e1e` and `var(--border2)` = `#2a2a2a`. Coach/admin Card component uses `border-[#222]` = `#222222`. WeekStrip uses `border-[#222]` and `border-[#333]`.  
-**Impact**: Cards look subtly different across roles.
+### 2. Border Color Mismatch ✅
+**Problem**: Hero cards use `var(--border)` = `#1e1e1e`. Coach/admin Card used `border-[#222]` = `#222222`. WeekStrip used `border-[#222]` and `border-[#333]`.  
+**Fix applied**: All borders corrected to `#1e1e1e` (--border) or `#2a2a2a` (--border2) throughout this document.
 
 ### 3. Hardcoded Colors in Coach/Admin Pages
-**Problem**: Coach and admin pages use raw hex values (`#0d0d0d`, `#1a1a1a`, `#333`, `#c8ff00/10`) instead of CSS vars. If the palette changes, only hero pages can be updated in one place.  
-**Files affected**: All coach pages, all admin pages, Sidebar, WeekStrip, Modal, SlidePanel.
+**Problem**: Coach and admin pages use raw hex values instead of CSS vars.  
+**Fix**: ⚠️ Replace hardcoded values in all coach/admin/Sidebar/WeekStrip/Modal/SlidePanel files using corrected values from this document.
 
 ### 4. Card Component vs `.card` CSS Class
-**Problem**: Two card implementations exist. Hero pages use `.card` CSS class (`var(--card)`, `var(--border)`). Coach/admin use the `Card` React component (`bg-[#111] border-[#222]`). These are close but slightly different border colors.
+**Problem**: Two card implementations. Hero pages use `.card` CSS class. Coach/admin use `Card` React component with slightly different border.  
+**Fix applied**: Card component border corrected to `#1e1e1e` in this document. ⚠️ Update Card.tsx in code.
 
-### 5. Input Component vs `.set-input` / `.auth-input`
-**Problem**: Three separate input styles exist:
-- `Input` component: `rounded-[14px] px-5 py-4 bg-[#1a1a1a] border-[#333]`
-- `.auth-input`: `rounded: 12px padding: 13px 16px bg: var(--lift2) border: var(--border2)`
-- `.set-input`: `rounded: 10px padding: 12px 10px bg: var(--lift2) border: var(--border2)` (compact workout inputs)  
-  **Impact**: Each UI context has a different input shape/size with no systematic rule.
+### 5. Input Component vs `.set-input` / `.auth-input` ✅
+**Problem**: Three separate input styles with different radius, padding, bg, border.  
+**Fix applied**: Input component corrected to `rounded-[12px] px-4 py-3 bg-[#1e1e1e] border-[#2a2a2a] text-[#f2f2f2] placeholder-[#555]` to align with auth-input pattern. `.set-input` remains compact (pad `12px 10px`) for the log grid context.
 
 ### 6. Font Reference Inconsistencies
-**Problem**: Fonts referenced three ways:
-- CSS vars: `font-family: 'Bebas Neue', sans-serif` (inline styles in hero)
-- Tailwind: `font-[Bebas_Neue]`, `font-[DM_Mono]` (coach/admin/components)
-- CSS class: set in `body { font-family: 'Syne', sans-serif }` but never explicitly applied via Tailwind  
-  **Impact**: Minor but inconsistent authoring pattern.
+**Problem**: Fonts referenced three different ways across hero/admin/CSS.  
+**Fix**: ⚠️ Standardize on `font-[Bebas_Neue]` and `font-[DM_Mono]` Tailwind classes everywhere, with CSS fallback in body.
 
 ### 7. Letter Spacing Inconsistency on Labels
-**Problem**: DM Mono section labels use `letterSpacing: 2` or `letterSpacing: 3` inconsistently across hero pages. Coach pages use Tailwind `tracking-widest` or `tracking-[2px]`.
+**Problem**: DM Mono section labels use inconsistent tracking values.  
+**Fix**: ⚠️ Use `tracking-[2px]` for standard labels, `tracking-[3px]` for section/checklist headers, `tracking-[1.5px]` for buttons.
 
-### 8. Purple Color Defined Only in Tailwind
-**Problem**: `#a855f7` (purple — training load, purple badge) is listed in `--color-purple` in index.css Tailwind config but has NO CSS variable in `design-system.css`. Hero pages that need it must hardcode the value.
+### 8. Purple Color Defined Only in Tailwind ✅
+**Problem**: `#a855f7` was in Tailwind config but wrong — not the purple used in the design.  
+**Fix applied**: Corrected to `#c084fc` everywhere (matches Day 5 Volume split accent in tracker).
 
-### 9. Orange / Macro Colors Not in Variables
-**Problem**: Nutrition macro colors (`#f59e0b`, `#ff8c8c`, `#6ab8ff`, `#ffb84d`, `#a855f7`) are hardcoded everywhere they appear. No CSS variables exist for them.
+### 9. Orange / Macro Colors Not in Variables ✅
+**Problem**: `#f59e0b` (orange) was listed as carbs color but is not used — `#6ab8ff` is the carbs color.  
+**Fix applied**: Removed `#f59e0b`. Macro colors are: protein `#ff8c8c`, carbs `#6ab8ff`, fat `#ffb84d`. ⚠️ Add these as CSS variables: `--macro-protein`, `--macro-carbs`, `--macro-fat`.
 
-### 10. Redundant `color-card2` Variable
-**Problem**: `--color-card2: #1a1a1a` exists in Tailwind config but `#1a1a1a` is not a declared CSS variable in `design-system.css` (closest is `--lift2: #1e1e1e`). The values differ by 1 shade.
+### 10. Redundant `color-card2` Variable ✅
+**Problem**: `--color-card2: #1a1a1a` differed from `--lift2: #1e1e1e`.  
+**Fix applied**: Corrected `--color-card2` to `#1e1e1e` to match `--lift2`.
 
 ### 11. Missing `.card` Usage in Some Hero Pages
-**Problem**: After the design pass, `HeroSettings` uses `.card` CSS class, but some sections still mix inline styles for the container. `HeroNutrition` and `HeroJournal` use inline style containers for certain sections instead of `.daily-checklist` or `.card`.
+**Problem**: `HeroNutrition` and `HeroJournal` use inline style containers.  
+**Fix**: ⚠️ Replace inline style containers with `.card` CSS class or `var(--card)` bg + `var(--border)` border.
 
-### 12. `emerald-*` Tailwind Utility in Badge
-**Problem**: The `green` Badge variant uses Tailwind's built-in `emerald` scale (`bg-emerald-500/10 text-emerald-400 border-emerald-500/30`) while all other colors use explicit hex. `#00e676` (`--green-pr`) is not the same as emerald-400 (`#34d399`). This is a different green.
+### 12. `emerald-*` Tailwind Utility in Badge ✅
+**Problem**: Green Badge used `emerald` scale (`#34d399`) instead of our `--green-pr` (`#00e676`).  
+**Fix applied**: Green badge corrected to `bg-[#00e676]/10 text-[#00e676] border-[#00e676]/30`.

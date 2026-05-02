@@ -133,12 +133,12 @@ function RequestCard({ req, onApprove, onReject, approving, rejecting }: {
                 value={rejectReason}
                 onChange={e => setRejectReason(e.target.value)}
                 placeholder="Optional: reason for rejection..."
-                className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-[12px] text-white text-sm placeholder:text-[#444] focus:outline-none focus:border-[#ff3d3d] resize-none"
+                className="w-full px-4 py-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-[12px] text-white text-sm placeholder:text-[#555] focus:outline-none focus:border-[#ff3d3d] resize-none"
               />
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowReject(false)}
-                  className="flex-1 py-2.5 rounded-[100px] border border-[#333] text-[#888] text-[11px] font-[DM_Mono] uppercase tracking-[2px] hover:border-[#555] transition-all"
+                  className="flex-1 py-2.5 rounded-[100px] border border-[#2a2a2a] text-[#aaa] text-[11px] font-[DM_Mono] uppercase tracking-[2px] hover:border-[#555] transition-all"
                 >
                   Cancel
                 </button>

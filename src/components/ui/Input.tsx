@@ -11,8 +11,8 @@ export default function Input({ label, error, hint, className = '', ...props }: 
     <div className="flex flex-col gap-2">
       {label && <label className="text-[15px] text-[#888] font-semibold">{label}</label>}
       <input
-        className={`w-full px-5 py-4 bg-[#1a1a1a] border rounded-[14px] text-white text-[15px] placeholder:text-[#444] focus:outline-none transition-colors font-[DM_Mono] ${
-          error ? 'border-[#ff3d3d] focus:border-[#ff3d3d]' : 'border-[#333] focus:border-[#c8ff00]'
+        className={`w-full px-4 py-3 bg-[#1e1e1e] border rounded-[12px] text-[#f2f2f2] text-[14px] placeholder:text-[#555] focus:outline-none transition-colors font-[DM_Mono] ${
+          error ? 'border-[#ff3d3d] focus:border-[#ff3d3d]' : 'border-[#2a2a2a] focus:border-[#c8ff00]'
         } ${className}`}
         {...props}
       />
