@@ -24,32 +24,41 @@ interface LastSet {
 // exerciseId → ordered array of last session sets
 type LastSessionData = Record<string, LastSet[]>
 
+const MAX_BACK_DAYS = 30
+
 // bundleId is passed as prop by HeroLayout (derived via matchPath — no Route/useParams needed)
 export default function HeroWorkout({ bundleId }: { bundleId: string | null }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { profile } = useAuthStore()
-  const logDate: string =
-    (location.state as { date?: string } | null)?.date ?? new Date().toISOString().slice(0, 10)
   const today = new Date().toISOString().slice(0, 10)
+  const [logDate, setLogDate] = useState<string>(
+    (location.state as { date?: string } | null)?.date ?? today
+  )
   const { toast, showToast } = useToast()
 
   const sessionIdRef = useRef<string | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Draft key: per-user, per-bundle, per-day
-  const draftKey = profile?.id && bundleId ? `draft_${profile.id}_${bundleId}_${today}` : null
+  // Draft key: per-user, per-bundle, per-day (use logDate so different dates have separate drafts)
+  const draftKey = profile?.id && bundleId ? `draft_${profile.id}_${bundleId}_${logDate}` : null
+
+  const minDate = (() => {
+    const d = new Date()
+    d.setDate(d.getDate() - MAX_BACK_DAYS)
+    return d.toISOString().slice(0, 10)
+  })()
 
   const [sets, setSets] = useState<LocalSet[]>([])
   const [notes, setNotes] = useState('')
   const [saved, setSaved] = useState(false)
   const [lastSessionData, setLastSessionData] = useState<LastSessionData>({})
 
-  // Reset session state when bundleId changes (navigating to different bundle)
+  // Reset session state when bundleId or logDate changes
   useEffect(() => {
     sessionIdRef.current = null
     setSaved(false)
-  }, [bundleId])
+  }, [bundleId, logDate])
 
   const { data: bundle } = useQuery({
     queryKey: ['bundle', bundleId],
@@ -131,7 +140,7 @@ export default function HeroWorkout({ bundleId }: { bundleId: string | null }) {
 
     setSets(initial)
     setNotes('')
-  }, [bundleExercises]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bundleExercises, logDate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Session DB ops ──────────────────────────────────────────────────────────
   const ensureSession = useCallback(async (): Promise<string | null> => {
@@ -217,24 +226,50 @@ export default function HeroWorkout({ bundleId }: { bundleId: string | null }) {
       <Toast toast={toast} />
 
       {/* Header */}
-      <div style={{ padding: '24px 16px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ padding: '24px 16px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
         <button
           onClick={() => navigate('/hero')}
           style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid var(--border2)', background: 'var(--lift2)', color: 'var(--text2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}
         >←</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
           <div style={{ width: 14, height: 14, borderRadius: '50%', flexShrink: 0, background: bundle.color }} />
-          <div style={{ minWidth: 0 }}>
-            <h1 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 32, letterSpacing: 3, color: 'var(--text)', margin: 0, lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {bundle.name}
-            </h1>
-            {logDate !== today && (
-              <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--accent)', marginTop: 2, letterSpacing: 1 }}>
-                Logging for {new Date(logDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-              </p>
-            )}
-          </div>
+          <h1 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 32, letterSpacing: 3, color: 'var(--text)', margin: 0, lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+            {bundle.name}
+          </h1>
         </div>
+      </div>
+
+      {/* Date selector */}
+      <div style={{ margin: '12px 16px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 12px' }}>
+        <button
+          onClick={() => {
+            const d = new Date(logDate + 'T12:00:00')
+            d.setDate(d.getDate() - 1)
+            const next = d.toISOString().slice(0, 10)
+            if (next >= minDate) setLogDate(next)
+          }}
+          disabled={logDate <= minDate}
+          style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border2)', background: 'none', color: 'var(--text2)', cursor: logDate <= minDate ? 'default' : 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: logDate <= minDate ? 0.3 : 1 }}
+        >←</button>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: logDate === today ? 'var(--accent)' : 'var(--text2)', letterSpacing: 1, margin: 0 }}>
+            {logDate === today ? 'Today' : new Date(logDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' })}
+          </p>
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>
+            {new Date(logDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            if (logDate < today) {
+              const d = new Date(logDate + 'T12:00:00')
+              d.setDate(d.getDate() + 1)
+              setLogDate(d.toISOString().slice(0, 10))
+            }
+          }}
+          disabled={logDate >= today}
+          style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border2)', background: 'none', color: 'var(--text2)', cursor: logDate >= today ? 'default' : 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: logDate >= today ? 0.3 : 1 }}
+        >→</button>
       </div>
 
       {/* Exercise cards */}

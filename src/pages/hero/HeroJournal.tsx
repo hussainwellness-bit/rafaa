@@ -1,11 +1,17 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import type { JournalLog, SleepQuality, Mood, Soreness, CardioType } from '../../types'
-import WeekStrip, { getWeekDates } from '../../components/ui/WeekStrip'
 
 const TODAY = new Date().toISOString().slice(0, 10)
+const MAX_BACK = 30
+
+function getMinDate(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - MAX_BACK)
+  return d.toISOString().slice(0, 10)
+}
 
 const SLEEP_OPTS: { value: SleepQuality; label: string; emoji: string }[] = [
   { value: 'deep',   label: 'Deep',   emoji: '😴' },
@@ -35,65 +41,70 @@ export default function HeroJournal() {
   const { profile } = useAuthStore()
   const qc = useQueryClient()
   const config = profile?.journal_config
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [weekOffset, setWeekOffset] = useState(0)
+  const minDate = getMinDate()
   const [selectedDate, setSelectedDate] = useState(TODAY)
   const [localChanges, setLocalChanges] = useState<Record<string, Partial<JournalLog>>>({})
+  const [savedMap, setSavedMap] = useState<Record<string, boolean>>({})
 
-  const weekDates = getWeekDates(weekOffset)
-  const isCurrentWeek = weekDates.includes(TODAY)
-
-  const { data: weekLogs = [], isLoading } = useQuery({
-    queryKey: ['journal-week', profile?.id, weekDates[0]],
+  // Fetch last 30 days of logs — stable query key, refetch only on user change
+  const { data: rangeLogs = [], isLoading } = useQuery({
+    queryKey: ['journal-range', profile?.id],
     queryFn: async () => {
       const { data } = await supabase
         .from('journal_logs').select('*')
         .eq('user_id', profile!.id)
-        .gte('logged_at', weekDates[0])
-        .lte('logged_at', weekDates[6])
+        .gte('logged_at', minDate)
+        .lte('logged_at', TODAY)
+        .order('logged_at')
       return (data ?? []) as JournalLog[]
     },
     enabled: !!profile?.id,
     staleTime: Infinity,
   })
 
-  const dbLog = weekLogs.find(l => l.logged_at === selectedDate) ?? null
+  const dbLog = rangeLogs.find(l => l.logged_at === selectedDate) ?? null
   const log: Partial<JournalLog> = { ...dbLog, ...(localChanges[selectedDate] ?? {}) }
 
-  const dotsMap: Record<string, boolean> = {}
-  for (const l of weekLogs) dotsMap[l.logged_at] = true
-
-  function handlePrevWeek() {
-    const newOffset = weekOffset - 1
-    setWeekOffset(newOffset)
-    const newDates = getWeekDates(newOffset)
-    if (!newDates.includes(selectedDate)) setSelectedDate(newDates[6])
+  function prevDay() {
+    const d = new Date(selectedDate + 'T12:00:00')
+    d.setDate(d.getDate() - 1)
+    const next = d.toISOString().slice(0, 10)
+    if (next >= minDate) setSelectedDate(next)
   }
 
-  function handleNextWeek() {
-    const newOffset = weekOffset + 1
-    setWeekOffset(newOffset)
-    const newDates = getWeekDates(newOffset)
-    if (newDates.includes(TODAY)) setSelectedDate(TODAY)
-    else if (!newDates.includes(selectedDate)) setSelectedDate(newDates[0])
+  function nextDay() {
+    if (selectedDate < TODAY) {
+      const d = new Date(selectedDate + 'T12:00:00')
+      d.setDate(d.getDate() + 1)
+      setSelectedDate(d.toISOString().slice(0, 10))
+    }
   }
 
   function set<K extends keyof JournalLog>(k: K, v: JournalLog[K]) {
-    setLocalChanges(prev => {
-      const next = { ...prev, [selectedDate]: { ...(prev[selectedDate] ?? {}), [k]: v } }
-      scheduleSave({ ...dbLog, ...next[selectedDate] })
-      return next
-    })
+    setLocalChanges(prev => ({
+      ...prev,
+      [selectedDate]: { ...(prev[selectedDate] ?? {}), [k]: v },
+    }))
   }
 
-  function scheduleSave(data: Partial<JournalLog>) {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(() => persist(data), 800)
+  function markSaved(key: string) {
+    setSavedMap(prev => ({ ...prev, [key]: true }))
+    setTimeout(() => setSavedMap(prev => ({ ...prev, [key]: false })), 2000)
+  }
+
+  async function saveSection(key: string, sectionFields: (keyof JournalLog)[]) {
+    const changes = localChanges[selectedDate] ?? {}
+    const overrides: Partial<JournalLog> = {}
+    for (const f of sectionFields) {
+      if (f in changes) (overrides as Record<string, unknown>)[f] = changes[f]
+    }
+    await persist({ ...(dbLog ?? {}), ...overrides })
+    markSaved(key)
   }
 
   async function persist(data: Partial<JournalLog>) {
-    const existingId = weekLogs.find(l => l.logged_at === selectedDate)?.id
+    const existingId = rangeLogs.find(l => l.logged_at === selectedDate)?.id
     const payload = { ...data, user_id: profile!.id, logged_at: selectedDate }
 
     if (existingId) {
@@ -105,7 +116,7 @@ export default function HeroJournal() {
         .select().single()
       if (upserted) {
         qc.setQueryData(
-          ['journal-week', profile?.id, weekDates[0]],
+          ['journal-range', profile?.id],
           (old: JournalLog[] = []) => [
             ...old.filter(l => l.logged_at !== selectedDate),
             upserted as JournalLog,
@@ -121,8 +132,46 @@ export default function HeroJournal() {
 
   const isToday = selectedDate === TODAY
   const isFuture = selectedDate > TODAY
+  const atMinDate = selectedDate <= minDate
   const selectedDObj = new Date(selectedDate + 'T12:00:00')
-  const dateLabel = selectedDObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+
+  // Inline save button component
+  function SaveBtn({ sKey, fields }: { sKey: string; fields: (keyof JournalLog)[] }) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {savedMap[sKey] && (
+          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--green-pr)', letterSpacing: 1 }}>
+            ✓ Saved
+          </span>
+        )}
+        <button
+          onClick={() => saveSection(sKey, fields)}
+          style={{
+            fontFamily: 'DM Mono, monospace',
+            fontSize: 9,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            color: 'var(--text3)',
+            background: 'none',
+            border: '1px solid var(--border2)',
+            borderRadius: 100,
+            padding: '4px 10px',
+            cursor: 'pointer',
+          }}
+        >
+          SAVE
+        </button>
+      </div>
+    )
+  }
+
+  const navBtnStyle = (disabled: boolean): React.CSSProperties => ({
+    width: 36, height: 36, borderRadius: 9, border: '1px solid var(--border2)',
+    background: 'none', color: disabled ? 'var(--text3)' : 'var(--text2)',
+    cursor: disabled ? 'default' : 'pointer', fontSize: 16,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    opacity: disabled ? 0.3 : 1, flexShrink: 0,
+  })
 
   if (isLoading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
@@ -138,33 +187,32 @@ export default function HeroJournal() {
           JOURNAL
         </h1>
         <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text3)', marginTop: 4, letterSpacing: 1 }}>
-          Auto-saves as you go
+          Save each section individually
         </p>
       </div>
 
-      {/* Week strip */}
-      <WeekStrip
-        weekDates={weekDates}
-        selectedDate={selectedDate}
-        onSelect={setSelectedDate}
-        dotsMap={dotsMap}
-        weekOffset={weekOffset}
-        onPrev={handlePrevWeek}
-        onNext={handleNextWeek}
-        disableNext={isCurrentWeek}
-      />
+      {/* Date navigator */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '10px 12px', marginBottom: 16 }}>
+        <button onClick={prevDay} disabled={atMinDate} style={navBtnStyle(atMinDate)}>←</button>
+        <div style={{ textAlign: 'center', flex: 1 }}>
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: isToday ? 'var(--accent)' : 'var(--text2)', letterSpacing: 1, margin: 0 }}>
+            {isToday ? 'Today' : selectedDObj.toLocaleDateString('en-US', { weekday: 'long' })}
+          </p>
+          <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text3)', marginTop: 2, letterSpacing: 0.5 }}>
+            {selectedDObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </p>
+        </div>
+        <button onClick={nextDay} disabled={selectedDate >= TODAY} style={navBtnStyle(selectedDate >= TODAY)}>→</button>
+      </div>
 
-      {/* Selected date label */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)' }}>
-          {isToday ? 'Today — ' : ''}{dateLabel}
-        </p>
-        {dbLog && !isFuture && (
+      {/* Logged indicator */}
+      {dbLog && !isFuture && (
+        <div style={{ marginBottom: 12 }}>
           <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--accent)', letterSpacing: 1 }}>Logged ✓</p>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Future date — no editing */}
+      {/* Future date */}
       {isFuture ? (
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 20px', textAlign: 'center' }}>
           <p style={{ fontFamily: 'DM Mono, monospace', color: 'var(--text3)', fontSize: 12, letterSpacing: 2 }}>// Can't log future days</p>
@@ -174,30 +222,36 @@ export default function HeroJournal() {
 
           {/* Steps */}
           {config?.steps && (
-            <div className={`check-row${log.steps_done ? ' checked' : ''}`}>
-              <div className="check-row-left">
-                <div className="check-row-icon-label">
-                  <span className="check-row-icon">👟</span>
-                  <span className="check-row-label">Steps</span>
+            <div>
+              <div className={`check-row${log.steps_done ? ' checked' : ''}`}>
+                <div className="check-row-left">
+                  <div className="check-row-icon-label">
+                    <span className="check-row-icon">👟</span>
+                    <span className="check-row-label">Steps</span>
+                  </div>
+                  <span className={`check-row-sub${log.steps_done ? ' done-sub' : ''}`}>
+                    Target: {profile?.steps_target?.toLocaleString() ?? '10,000'} steps
+                  </span>
                 </div>
-                <span className={`check-row-sub${log.steps_done ? ' done-sub' : ''}`}>
-                  Target: {profile?.steps_target?.toLocaleString() ?? '10,000'} steps
-                </span>
+                <button
+                  onClick={() => set('steps_done', !log.steps_done)}
+                  className={`big-check${log.steps_done ? ' done' : ''}`}
+                >
+                  {log.steps_done ? '✓' : ''}
+                </button>
               </div>
-              <button
-                onClick={() => set('steps_done', !log.steps_done)}
-                className={`big-check${log.steps_done ? ' done' : ''}`}
-              >
-                {log.steps_done ? '✓' : ''}
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '6px 12px 0' }}>
+                <SaveBtn sKey="steps" fields={['steps_done']} />
+              </div>
             </div>
           )}
 
           {/* Sleep */}
           {config?.sleep && (
             <div className="daily-checklist">
-              <div className="checklist-header">
+              <div className="checklist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <p className="checklist-title">// SLEEP</p>
+                <SaveBtn sKey="sleep" fields={['sleep_hours', 'sleep_quality']} />
               </div>
               <div className="checklist-body">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -229,52 +283,58 @@ export default function HeroJournal() {
 
           {/* Cardio */}
           {config?.cardio && (
-            <div className={`cardio-block${log.cardio_done ? ' checked' : ''}`}>
-              <div className="cardio-top">
-                <div className="cardio-label-row">
-                  <span className="cardio-icon">🏃</span>
-                  <span className="cardio-label">Cardio</span>
+            <div>
+              <div className={`cardio-block${log.cardio_done ? ' checked' : ''}`}>
+                <div className="cardio-top">
+                  <div className="cardio-label-row">
+                    <span className="cardio-icon">🏃</span>
+                    <span className="cardio-label">Cardio</span>
+                  </div>
+                  <button
+                    onClick={() => set('cardio_done', !log.cardio_done)}
+                    className={`big-check${log.cardio_done ? ' done' : ''}`}
+                  >
+                    {log.cardio_done ? '✓' : ''}
+                  </button>
                 </div>
-                <button
-                  onClick={() => set('cardio_done', !log.cardio_done)}
-                  className={`big-check${log.cardio_done ? ' done' : ''}`}
-                >
-                  {log.cardio_done ? '✓' : ''}
-                </button>
+                {log.cardio_done && (
+                  <>
+                    <div className="cardio-type-row">
+                      {CARDIO_TYPES.map(ct => (
+                        <button
+                          key={ct}
+                          onClick={() => set('cardio_type', ct as CardioType)}
+                          className={`cardio-type-btn${log.cardio_type === ct ? ' selected' : ''}`}
+                        >
+                          {ct}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input
+                        type="number" min={0} placeholder="30"
+                        value={log.cardio_duration ?? ''}
+                        onChange={e => set('cardio_duration', parseInt(e.target.value) || undefined)}
+                        className={`duration-input${log.cardio_duration ? ' filled' : ''}`}
+                        style={{ width: 90 }}
+                      />
+                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)' }}>minutes</span>
+                    </div>
+                  </>
+                )}
               </div>
-              {log.cardio_done && (
-                <>
-                  <div className="cardio-type-row">
-                    {CARDIO_TYPES.map(ct => (
-                      <button
-                        key={ct}
-                        onClick={() => set('cardio_type', ct as CardioType)}
-                        className={`cardio-type-btn${log.cardio_type === ct ? ' selected' : ''}`}
-                      >
-                        {ct}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <input
-                      type="number" min={0} placeholder="30"
-                      value={log.cardio_duration ?? ''}
-                      onChange={e => set('cardio_duration', parseInt(e.target.value) || undefined)}
-                      className={`duration-input${log.cardio_duration ? ' filled' : ''}`}
-                      style={{ width: 90 }}
-                    />
-                    <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--text3)' }}>minutes</span>
-                  </div>
-                </>
-              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '6px 12px 0' }}>
+                <SaveBtn sKey="cardio" fields={['cardio_done', 'cardio_type', 'cardio_duration']} />
+              </div>
             </div>
           )}
 
           {/* Water */}
           {config?.water && (
             <div className="daily-checklist">
-              <div className="checklist-header">
+              <div className="checklist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <p className="checklist-title">// WATER</p>
+                <SaveBtn sKey="water" fields={['water_glasses']} />
               </div>
               <div className="checklist-body">
                 <div className="water-track">
@@ -308,8 +368,9 @@ export default function HeroJournal() {
           {/* Body Weight */}
           {config?.body_weight && (
             <div className="daily-checklist">
-              <div className="checklist-header">
+              <div className="checklist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <p className="checklist-title">// BODY WEIGHT</p>
+                <SaveBtn sKey="body_weight" fields={['body_weight']} />
               </div>
               <div className="checklist-body">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -329,8 +390,9 @@ export default function HeroJournal() {
           {/* Mood */}
           {config?.mood && (
             <div className="daily-checklist">
-              <div className="checklist-header">
+              <div className="checklist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <p className="checklist-title">// MOOD</p>
+                <SaveBtn sKey="mood" fields={['mood']} />
               </div>
               <div className="checklist-body">
                 <div className="cardio-type-row">
@@ -352,8 +414,9 @@ export default function HeroJournal() {
           {/* Soreness */}
           {config?.soreness && (
             <div className="daily-checklist">
-              <div className="checklist-header">
+              <div className="checklist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <p className="checklist-title">// SORENESS</p>
+                <SaveBtn sKey="soreness" fields={['soreness']} />
               </div>
               <div className="checklist-body">
                 <div className="cardio-type-row">
@@ -374,8 +437,9 @@ export default function HeroJournal() {
 
           {/* Notes */}
           <div className="daily-checklist">
-            <div className="checklist-header">
+            <div className="checklist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <p className="checklist-title">// NOTES</p>
+              <SaveBtn sKey="notes" fields={['notes']} />
             </div>
             <div className="checklist-body">
               <textarea

@@ -943,7 +943,7 @@ function LogForHeroModal({ open, onClose, heroName, bundles, heroId }: {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const TABS = ['Overview', 'Bundles', 'Schedule', 'History']
+const TABS = ['Overview', 'Bundles', 'Schedule', 'History', 'Journal']
 
 export default function CoachHeroProfile() {
   const { heroId } = useParams<{ heroId: string }>()
@@ -958,6 +958,7 @@ export default function CoachHeroProfile() {
   const [showDelete, setShowDelete] = useState(false)
   const [activating, setActivating] = useState(false)
   const [resending, setResending] = useState(false)
+  const [expandedSession, setExpandedSession] = useState<string | null>(null)
   const { toast, showToast } = useToast()
 
   const isPhysicalCoach = coachProfile?.coach_type === 'physical'
@@ -996,11 +997,27 @@ export default function CoachHeroProfile() {
         setsBySession[s.session_id]!.push(s)
       }
       return rows.map(r => ({ ...r, sets: setsBySession[r.id] ?? [] })) as Array<{
-        id: string; bundle_name: string; logged_at: string; notes?: string
-        sets?: Array<{ exercise_name: string; set_number: number; weight: number; reps: number; done: boolean }>
+        id: string; bundle_id: string; bundle_name: string; logged_at: string; notes?: string; session_type?: string
+        sets?: Array<{ exercise_name: string; set_number: number; weight: number | null; reps: number | null; done: boolean }>
       }>
     },
-    enabled: !!heroId && tab === 'History',
+    enabled: !!heroId && (tab === 'History'),
+  })
+
+  const { data: journalTrends = [] } = useQuery({
+    queryKey: ['hero-journal-trends', heroId],
+    queryFn: async () => {
+      const todayStr = new Date().toISOString().slice(0, 10)
+      const startStr = new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      const { data } = await supabase
+        .from('journal_logs').select('*')
+        .eq('user_id', heroId)
+        .gte('logged_at', startStr)
+        .lte('logged_at', todayStr)
+        .order('logged_at')
+      return (data ?? []) as import('../../types').JournalLog[]
+    },
+    enabled: !!heroId && tab === 'Journal',
   })
 
   const deleteBundle = useMutation({
@@ -1359,33 +1376,302 @@ export default function CoachHeroProfile() {
       {/* History */}
       {tab === 'History' && (
         <div className="space-y-3">
-          {sessions.map(s => (
-            <Card key={s.id} className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-white font-semibold">{s.bundle_name}</p>
-                  <p className="text-[#555] text-sm">{new Date(s.logged_at).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
-                </div>
-                <Badge variant="muted">{s.sets?.filter(set => set.done).length ?? 0} done</Badge>
-              </div>
-              {s.notes && <p className="text-[#aaa] text-sm italic mb-3">"{s.notes}"</p>}
-              <div className="space-y-1">
-                {(s.sets ?? []).filter(set => set.done).slice(0, 8).map((set, i) => (
-                  <div key={i} className="flex items-center gap-3 text-xs font-[DM_Mono]">
-                    <span className="text-[#444] w-5">{set.set_number}</span>
-                    <span className="text-[#aaa] flex-1">{set.exercise_name}</span>
-                    <span className="text-white">{set.weight}kg × {set.reps}</span>
-                    <span className="text-[#c8ff00]">✓</span>
+          {sessions.map(s => {
+            const isExpanded = expandedSession === s.id
+            const doneSets = (s.sets ?? []).filter(set => set.done)
+            const bundle = bundles.find(b => b.id === s.bundle_id)
+            const isRest = (s.session_type ?? 'workout') === 'rest'
+
+            const exerciseOrder: string[] = []
+            const setsByEx: Record<string, typeof doneSets> = {}
+            if (isExpanded && !isRest) {
+              for (const set of [...doneSets].sort((a, b) => a.set_number - b.set_number)) {
+                if (!setsByEx[set.exercise_name]) {
+                  setsByEx[set.exercise_name] = []
+                  exerciseOrder.push(set.exercise_name)
+                }
+                setsByEx[set.exercise_name]!.push(set)
+              }
+            }
+
+            return (
+              <Card key={s.id} className="overflow-hidden p-0">
+                {/* Tap to expand/collapse */}
+                <button
+                  onClick={() => setExpandedSession(isExpanded ? null : s.id)}
+                  className="w-full text-left"
+                  style={{ padding: '16px 20px', display: 'block', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {isRest ? (
+                        <span style={{ fontSize: 16 }}>🔋</span>
+                      ) : (
+                        bundle && <div className="w-3 h-3 rounded-full shrink-0" style={{ background: bundle.color }} />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-white font-semibold truncate">{isRest ? 'Rest Day' : s.bundle_name}</p>
+                        <p className="text-[#555] text-sm">
+                          {new Date(s.logged_at + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {!isRest && <Badge variant="muted">{doneSets.length} sets</Badge>}
+                      <span className="text-[#555] text-xs transition-transform duration-200" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none' }}>▶</span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </Card>
-          ))}
+                  {s.notes && !isExpanded && (
+                    <p className="text-[#555] text-xs italic mt-2 truncate">"{s.notes}"</p>
+                  )}
+                </button>
+
+                {/* Expanded detail */}
+                {isExpanded && (
+                  <div style={{ borderTop: '1px solid #1e1e1e', padding: '16px 20px 20px' }}>
+                    {s.notes && (
+                      <p className="text-[#aaa] text-sm italic mb-4">"{s.notes}"</p>
+                    )}
+                    {isRest ? (
+                      <p className="text-[#555] text-sm">Rest day — no workout logged.</p>
+                    ) : exerciseOrder.length === 0 ? (
+                      <p className="text-[#555] text-sm">No completed sets.</p>
+                    ) : (
+                      <div className="space-y-5">
+                        {exerciseOrder.map(name => (
+                          <div key={name}>
+                            <p style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>
+                              {name}
+                            </p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                              {setsByEx[name]!.map((set, i) => (
+                                <span
+                                  key={i}
+                                  style={{
+                                    fontFamily: 'DM Mono, monospace', fontSize: 11,
+                                    color: '#f2f2f2', background: '#1e1e1e',
+                                    border: '1px solid #2a2a2a', borderRadius: 6,
+                                    padding: '4px 10px',
+                                  }}
+                                >
+                                  S{set.set_number} {set.weight != null ? `${set.weight}kg` : '—'}×{set.reps ?? '—'}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
+            )
+          })}
           {sessions.length === 0 && (
             <Card className="p-8 text-center"><p className="text-[#555]">No sessions logged yet.</p></Card>
           )}
         </div>
       )}
+
+      {/* Journal Trends */}
+      {tab === 'Journal' && (() => {
+        const todayStr = new Date().toISOString().slice(0, 10)
+        const last14 = Array.from({ length: 14 }, (_, i) => {
+          const d = new Date()
+          d.setDate(d.getDate() - (13 - i))
+          return d.toISOString().slice(0, 10)
+        })
+        const logByDate: Record<string, import('../../types').JournalLog> = {}
+        for (const l of journalTrends) logByDate[l.logged_at] = l
+
+        const weights = last14.map(d => logByDate[d]?.body_weight ?? null)
+        const validWeights = weights.filter(w => w != null) as number[]
+        const maxW = validWeights.length ? Math.max(...validWeights) : 0
+        const minW = validWeights.length ? Math.min(...validWeights) : 0
+
+        const sleepColors = (h: number | null | undefined) =>
+          !h ? '#333' : h >= 7 ? '#00e676' : h >= 5 ? '#f59e0b' : '#ff3d3d'
+
+        const stepsStreak = (() => {
+          let streak = 0
+          for (let i = last14.length - 1; i >= 0; i--) {
+            const d = last14[i]
+            if (d > todayStr) continue
+            if (logByDate[d]?.steps_done) streak++
+            else break
+          }
+          return streak
+        })()
+
+        const moodEmoji: Record<string, string> = {
+          pumped: '🔥', good: '😊', normal: '😐', tired: '😓', exhausted: '💀'
+        }
+
+        const dayLabel = (d: string) => {
+          const dt = new Date(d + 'T12:00:00')
+          return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        }
+
+        const mono = { fontFamily: 'DM Mono, monospace' } as const
+
+        return (
+          <div className="space-y-4">
+            <p style={{ ...mono, fontSize: 10, color: '#555', letterSpacing: 2, textTransform: 'uppercase' }}>Last 14 Days</p>
+
+            {/* Body Weight */}
+            <Card className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 style={{ ...mono, fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 2 }}>Body Weight</h3>
+                {validWeights.length > 0 && (
+                  <span style={{ ...mono, fontSize: 10, color: '#555' }}>
+                    ↓ {minW}kg &nbsp;↑ {maxW}kg
+                  </span>
+                )}
+              </div>
+              {validWeights.length === 0 ? (
+                <p style={{ ...mono, fontSize: 11, color: '#333' }}>No data logged</p>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 64 }}>
+                  {last14.map((d, i) => {
+                    const w = weights[i]
+                    const range = maxW - minW || 1
+                    const barH = w != null ? Math.max(6, ((w - minW) / range) * 48 + 10) : 0
+                    const isMax = w === maxW
+                    const isMin = w === minW
+                    return (
+                      <div key={d} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, justifyContent: 'flex-end' }}>
+                        {w != null ? (
+                          <div
+                            title={`${dayLabel(d)}: ${w}kg`}
+                            style={{ width: '100%', height: barH, background: isMax ? '#ff8c8c' : isMin ? '#c8ff00' : '#3d9fff', borderRadius: 3 }}
+                          />
+                        ) : (
+                          <div style={{ width: '100%', height: 3, background: '#1e1e1e', borderRadius: 2, marginBottom: 3 }} />
+                        )}
+                        <span style={{ ...mono, fontSize: 7, color: '#333' }}>{new Date(d + 'T12:00:00').getDate()}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </Card>
+
+            {/* Sleep */}
+            <Card className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 style={{ ...mono, fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 2 }}>Sleep</h3>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <span style={{ ...mono, fontSize: 9, color: '#00e676' }}>●  7+h</span>
+                  <span style={{ ...mono, fontSize: 9, color: '#f59e0b' }}>●  5-7h</span>
+                  <span style={{ ...mono, fontSize: 9, color: '#ff3d3d' }}>●  &lt;5h</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 64 }}>
+                {last14.map(d => {
+                  const h = logByDate[d]?.sleep_hours
+                  const barH = h ? Math.max(6, (h / 10) * 56) : 0
+                  return (
+                    <div key={d} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, justifyContent: 'flex-end' }}>
+                      {h ? (
+                        <div
+                          title={`${dayLabel(d)}: ${h}h`}
+                          style={{ width: '100%', height: barH, background: sleepColors(h), borderRadius: 3 }}
+                        />
+                      ) : (
+                        <div style={{ width: '100%', height: 3, background: '#1e1e1e', borderRadius: 2, marginBottom: 3 }} />
+                      )}
+                      <span style={{ ...mono, fontSize: 7, color: '#333' }}>{new Date(d + 'T12:00:00').getDate()}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </Card>
+
+            {/* Steps */}
+            <Card className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 style={{ ...mono, fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 2 }}>Steps</h3>
+                <span style={{ ...mono, fontSize: 11, color: '#c8ff00' }}>{stepsStreak} day streak</span>
+              </div>
+              <div style={{ display: 'flex', gap: 3 }}>
+                {last14.map(d => {
+                  const log = logByDate[d]
+                  const done = log?.steps_done
+                  const noData = !log
+                  return (
+                    <div key={d} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                      <div
+                        title={dayLabel(d)}
+                        style={{
+                          width: '100%', aspectRatio: '1', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: noData ? '#0d0d0d' : done ? 'rgba(200,255,0,0.12)' : 'rgba(255,61,61,0.08)',
+                          border: `1px solid ${noData ? '#1e1e1e' : done ? 'rgba(200,255,0,0.3)' : 'rgba(255,61,61,0.2)'}`,
+                          fontSize: 10,
+                        }}
+                      >
+                        {!noData && (done ? '✓' : '✗')}
+                      </div>
+                      <span style={{ ...mono, fontSize: 7, color: '#333' }}>{new Date(d + 'T12:00:00').getDate()}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </Card>
+
+            {/* Mood */}
+            <Card className="p-5">
+              <h3 style={{ ...mono, fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 16 }}>Mood</h3>
+              <div style={{ display: 'flex', gap: 3 }}>
+                {last14.map(d => {
+                  const mood = logByDate[d]?.mood
+                  return (
+                    <div key={d} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                      <div
+                        title={`${dayLabel(d)}${mood ? `: ${mood}` : ''}`}
+                        style={{
+                          width: '100%', aspectRatio: '1', borderRadius: 6,
+                          background: mood ? '#1e1e1e' : '#0d0d0d',
+                          border: '1px solid #1e1e1e',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 12,
+                        }}
+                      >
+                        {mood ? moodEmoji[mood] ?? '—' : ''}
+                      </div>
+                      <span style={{ ...mono, fontSize: 7, color: '#333' }}>{new Date(d + 'T12:00:00').getDate()}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </Card>
+
+            {/* Water */}
+            <Card className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 style={{ ...mono, fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 2 }}>Water</h3>
+                <span style={{ ...mono, fontSize: 10, color: '#555' }}>target: 8 glasses</span>
+              </div>
+              <div style={{ display: 'flex', gap: 3 }}>
+                {last14.map(d => {
+                  const g = logByDate[d]?.water_glasses ?? null
+                  const pct = g != null ? Math.min(1, g / 8) : 0
+                  return (
+                    <div key={d} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                      <div style={{ width: '100%', height: 48, background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                        <div
+                          title={`${dayLabel(d)}${g != null ? `: ${g} glasses` : ''}`}
+                          style={{ width: '100%', height: `${pct * 100}%`, background: g != null ? 'rgba(61,159,255,0.5)' : 'transparent', transition: 'height 0.3s' }}
+                        />
+                      </div>
+                      <span style={{ ...mono, fontSize: 7, color: '#333' }}>{new Date(d + 'T12:00:00').getDate()}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </Card>
+          </div>
+        )
+      })()}
 
       {/* Bundle Modal */}
       {coachProfile && (
