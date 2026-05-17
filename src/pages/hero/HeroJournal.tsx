@@ -37,6 +37,36 @@ const SORENESS_OPTS: { value: Soreness; label: string; emoji: string }[] = [
 
 const CARDIO_TYPES: CardioType[] = ['Stairs', 'Elliptical', 'Cycling', 'HIIT', 'Running', 'Other']
 
+// Stable component — defined at module level so React never remounts it on parent re-renders
+function SaveBtn({ saved, onSave }: { saved: boolean; onSave: () => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {saved && (
+        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--green-pr)', letterSpacing: 1 }}>
+          ✓ Saved
+        </span>
+      )}
+      <button
+        onClick={onSave}
+        style={{
+          fontFamily: 'DM Mono, monospace',
+          fontSize: 9,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          color: 'var(--text3)',
+          background: 'none',
+          border: '1px solid var(--border2)',
+          borderRadius: 100,
+          padding: '4px 10px',
+          cursor: 'pointer',
+        }}
+      >
+        SAVE
+      </button>
+    </div>
+  )
+}
+
 export default function HeroJournal() {
   const { profile } = useAuthStore()
   const qc = useQueryClient()
@@ -47,7 +77,7 @@ export default function HeroJournal() {
   const [localChanges, setLocalChanges] = useState<Record<string, Partial<JournalLog>>>({})
   const [savedMap, setSavedMap] = useState<Record<string, boolean>>({})
 
-  // Fetch last 30 days of logs — stable query key, refetch only on user change
+  // 30-day range query — shared with HeroRecovery via the same cache key
   const { data: rangeLogs = [], isLoading } = useQuery({
     queryKey: ['journal-range', profile?.id],
     queryFn: async () => {
@@ -108,7 +138,18 @@ export default function HeroJournal() {
     const payload = { ...data, user_id: profile!.id, logged_at: selectedDate }
 
     if (existingId) {
-      await supabase.from('journal_logs').update(payload).eq('id', existingId)
+      // Update: fetch back the full row to keep cache in sync
+      const { data: updated } = await supabase
+        .from('journal_logs').update(payload).eq('id', existingId).select().single()
+      if (updated) {
+        qc.setQueryData(
+          ['journal-range', profile?.id],
+          (old: JournalLog[] = []) => [
+            ...old.filter(l => l.logged_at !== selectedDate),
+            updated as JournalLog,
+          ]
+        )
+      }
     } else {
       const { data: upserted } = await supabase
         .from('journal_logs')
@@ -122,11 +163,9 @@ export default function HeroJournal() {
             upserted as JournalLog,
           ]
         )
-        if (selectedDate === TODAY) {
-          qc.setQueryData(['journal-today', profile?.id], upserted)
-        }
       }
     }
+    // Invalidate journal-today so HeroHome / HeroRecovery stay fresh
     qc.invalidateQueries({ queryKey: ['journal-today', profile?.id] })
   }
 
@@ -134,36 +173,6 @@ export default function HeroJournal() {
   const isFuture = selectedDate > TODAY
   const atMinDate = selectedDate <= minDate
   const selectedDObj = new Date(selectedDate + 'T12:00:00')
-
-  // Inline save button component
-  function SaveBtn({ sKey, fields }: { sKey: string; fields: (keyof JournalLog)[] }) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        {savedMap[sKey] && (
-          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--green-pr)', letterSpacing: 1 }}>
-            ✓ Saved
-          </span>
-        )}
-        <button
-          onClick={() => saveSection(sKey, fields)}
-          style={{
-            fontFamily: 'DM Mono, monospace',
-            fontSize: 9,
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            color: 'var(--text3)',
-            background: 'none',
-            border: '1px solid var(--border2)',
-            borderRadius: 100,
-            padding: '4px 10px',
-            cursor: 'pointer',
-          }}
-        >
-          SAVE
-        </button>
-      </div>
-    )
-  }
 
   const navBtnStyle = (disabled: boolean): React.CSSProperties => ({
     width: 36, height: 36, borderRadius: 9, border: '1px solid var(--border2)',
@@ -241,7 +250,7 @@ export default function HeroJournal() {
                 </button>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '6px 12px 0' }}>
-                <SaveBtn sKey="steps" fields={['steps_done']} />
+                <SaveBtn saved={!!savedMap['steps']} onSave={() => saveSection('steps', ['steps_done'])} />
               </div>
             </div>
           )}
@@ -251,7 +260,7 @@ export default function HeroJournal() {
             <div className="daily-checklist">
               <div className="checklist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <p className="checklist-title">// SLEEP</p>
-                <SaveBtn sKey="sleep" fields={['sleep_hours', 'sleep_quality']} />
+                <SaveBtn saved={!!savedMap['sleep']} onSave={() => saveSection('sleep', ['sleep_hours', 'sleep_quality'])} />
               </div>
               <div className="checklist-body">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -324,7 +333,7 @@ export default function HeroJournal() {
                 )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '6px 12px 0' }}>
-                <SaveBtn sKey="cardio" fields={['cardio_done', 'cardio_type', 'cardio_duration']} />
+                <SaveBtn saved={!!savedMap['cardio']} onSave={() => saveSection('cardio', ['cardio_done', 'cardio_type', 'cardio_duration'])} />
               </div>
             </div>
           )}
@@ -334,7 +343,7 @@ export default function HeroJournal() {
             <div className="daily-checklist">
               <div className="checklist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <p className="checklist-title">// WATER</p>
-                <SaveBtn sKey="water" fields={['water_glasses']} />
+                <SaveBtn saved={!!savedMap['water']} onSave={() => saveSection('water', ['water_glasses'])} />
               </div>
               <div className="checklist-body">
                 <div className="water-track">
@@ -370,7 +379,7 @@ export default function HeroJournal() {
             <div className="daily-checklist">
               <div className="checklist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <p className="checklist-title">// BODY WEIGHT</p>
-                <SaveBtn sKey="body_weight" fields={['body_weight']} />
+                <SaveBtn saved={!!savedMap['body_weight']} onSave={() => saveSection('body_weight', ['body_weight'])} />
               </div>
               <div className="checklist-body">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -392,7 +401,7 @@ export default function HeroJournal() {
             <div className="daily-checklist">
               <div className="checklist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <p className="checklist-title">// MOOD</p>
-                <SaveBtn sKey="mood" fields={['mood']} />
+                <SaveBtn saved={!!savedMap['mood']} onSave={() => saveSection('mood', ['mood'])} />
               </div>
               <div className="checklist-body">
                 <div className="cardio-type-row">
@@ -416,7 +425,7 @@ export default function HeroJournal() {
             <div className="daily-checklist">
               <div className="checklist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <p className="checklist-title">// SORENESS</p>
-                <SaveBtn sKey="soreness" fields={['soreness']} />
+                <SaveBtn saved={!!savedMap['soreness']} onSave={() => saveSection('soreness', ['soreness'])} />
               </div>
               <div className="checklist-body">
                 <div className="cardio-type-row">
@@ -439,7 +448,7 @@ export default function HeroJournal() {
           <div className="daily-checklist">
             <div className="checklist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <p className="checklist-title">// NOTES</p>
-              <SaveBtn sKey="notes" fields={['notes']} />
+              <SaveBtn saved={!!savedMap['notes']} onSave={() => saveSection('notes', ['notes'])} />
             </div>
             <div className="checklist-body">
               <textarea
